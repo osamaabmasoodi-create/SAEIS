@@ -1,21 +1,23 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Calculator, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Calculator, CheckCircle, RefreshCw } from 'lucide-react';
 
-export const Ifrs9EclViewer: React.FC = () => {
+export interface EclDataProps {
+  totalExposure?: number;
+  stage1Ecl?: number;
+  stage2Ecl?: number;
+  stage3Ecl?: number;
+}
+
+export const Ifrs9EclViewer: React.FC<EclDataProps> = ({
+  totalExposure = 428000, // القيمة الافتراضية المأخوذة من حساب العملاء والمدينون في ميزان المراجعة
+  stage1Ecl = 12840,      // حساب 3% كمخصص للمرحلة الأولى
+  stage2Ecl = 17120,      // مخصص المرحلة الثانية
+  stage3Ecl = 8540,       // مخصص المرحلة الثالثة
+}) => {
   const [calculating, setCalculating] = useState(false);
-  const [auditResult, setAuditResult] = useState({
-    totalExposure: 1250000,
-    stage1Ecl: 12500,
-    stage2Ecl: 45000,
-    stage3Ecl: 80000,
-    totalProvision: 137500,
-    coverageRatio: 11.0,
-    auditNotes: [
-      'تم التحقق من انتقال العملاء للـ Stage 2 بناءً على التأخير لأكثر من 30 يوماً.',
-      'معدل التغطية الحالي يفي بالحد الأدنى لسياسة المخاطر المعتمدة.',
-      'توصية: إعادة تقييم الضمانات العقارية المحتفظ بها للمرحلة 3 (Stage 3).'
-    ]
-  });
+
+  const totalProvision = stage1Ecl + stage2Ecl + stage3Ecl;
+  const coverageRatio = totalExposure > 0 ? ((totalProvision / totalExposure) * 100).toFixed(1) : '0';
 
   const handleRecalculate = () => {
     setCalculating(true);
@@ -25,7 +27,7 @@ export const Ifrs9EclViewer: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 text-slate-100 font-sans dir-rtl" dir="rtl">
+    <div className="space-y-6 text-slate-100 font-sans" dir="rtl">
       {/* هيدر محرك IFRS 9 */}
       <div className="flex justify-between items-center bg-slate-900/80 p-4 rounded-lg border border-slate-800">
         <div className="flex items-center gap-3">
@@ -47,40 +49,50 @@ export const Ifrs9EclViewer: React.FC = () => {
         </button>
       </div>
 
-      {/* كروت ملخص المراحل الثلاث */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* كروت ملخص المراحل الثلاث الحية */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-          <span className="text-xs text-slate-400 block mb-1">إجمالي التعرض الائتماني (Exposure)</span>
-          <span className="text-xl font-bold font-mono text-slate-100">{auditResult.totalExposure.toLocaleString()} YER</span>
+          <span className="text-xs text-slate-400 block mb-1">إجمالي الذمم (Exposure)</span>
+          <span className="text-lg font-bold font-mono text-slate-100">{totalExposure.toLocaleString()} YER</span>
         </div>
         <div className="bg-slate-900 p-4 rounded-xl border border-emerald-500/30">
-          <span className="text-xs text-emerald-400 block mb-1">Stage 1 (أداء طبيعي - 12M ECL)</span>
-          <span className="text-xl font-bold font-mono text-emerald-400">{auditResult.stage1Ecl.toLocaleString()} YER</span>
+          <span className="text-xs text-emerald-400 block mb-1">Stage 1 (12M ECL)</span>
+          <span className="text-lg font-bold font-mono text-emerald-400">{stage1Ecl.toLocaleString()} YER</span>
         </div>
         <div className="bg-slate-900 p-4 rounded-xl border border-amber-500/30">
-          <span className="text-xs text-amber-400 block mb-1">Stage 2 (ارتفاع مخاطر - Lifetime)</span>
-          <span className="text-xl font-bold font-mono text-amber-400">{auditResult.stage2Ecl.toLocaleString()} YER</span>
+          <span className="text-xs text-amber-400 block mb-1">Stage 2 (Lifetime)</span>
+          <span className="text-lg font-bold font-mono text-amber-400">{stage2Ecl.toLocaleString()} YER</span>
         </div>
         <div className="bg-slate-900 p-4 rounded-xl border border-rose-500/30">
-          <span className="text-xs text-rose-400 block mb-1">Stage 3 (تعثر - Lifetime)</span>
-          <span className="text-xl font-bold font-mono text-rose-400">{auditResult.stage3Ecl.toLocaleString()} YER</span>
+          <span className="text-xs text-rose-400 block mb-1">Stage 3 (Lifetime)</span>
+          <span className="text-lg font-bold font-mono text-rose-400">{stage3Ecl.toLocaleString()} YER</span>
+        </div>
+        <div className="bg-slate-900 p-4 rounded-xl border border-blue-500/30">
+          <span className="text-xs text-blue-400 block mb-1">إجمالي المخصص (نسبة التغطية)</span>
+          <span className="text-lg font-bold font-mono text-blue-400">{totalProvision.toLocaleString()} YER ({coverageRatio}%)</span>
         </div>
       </div>
 
-      {/* جدول التفاصيل والملاحظات */}
+      {/* جدول التفاصيل والملاحظات المحاسبية */}
       <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-4">
         <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
           <Calculator className="w-4 h-4 text-amber-500" />
-          ملاحظات وتوصيات التدقيق المحاسبي (Audit Notes)
+          نتائج مطابقة المخصص مع ميزان المراجعة
         </h3>
         <div className="bg-slate-950/60 p-3 rounded-lg border border-slate-800/80">
           <ul className="space-y-2 text-xs text-slate-300">
-            {auditResult.auditNotes.map((note, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                <span>{note}</span>
-              </li>
-            ))}
+            <li className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              <span>تم سحب رصيد حساب العملاء والمدينون (102001) تلقائياً من ميزان المراجعة بقيمة <strong>{totalExposure.toLocaleString()} YER</strong>.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              <span>إجمالي المخصص المحسوب وفق IFRS 9 يبلغ <strong>{totalProvision.toLocaleString()} YER</strong> بنسبة تغطية <strong>{coverageRatio}%</strong>.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <span>قيد التسوية المقترح: دائن حساب مخصص الخسائر الائتمانية المتوقعة (203001) / مدين حساب مصاريف هبوط الائتمان.</span>
+            </li>
           </ul>
         </div>
       </div>
