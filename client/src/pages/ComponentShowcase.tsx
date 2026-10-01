@@ -1,25 +1,15 @@
 import React, { useState } from 'react';
-import { format } from 'date-fns';
-import { arSA } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Database, ShieldCheck, MessageSquare } from 'lucide-react';
+import { Calendar as CalendarIcon, Database, ShieldCheck } from 'lucide-react';
 
-import { SqlViewer } from '@/components/SqlViewer';
-import { Ifrs9EclViewer } from '@/components/Ifrs9EclViewer';
-
-// تعريف نوع البيانات Message محلياً لتجنب مشاكل التصدير من AIChatBox
-export interface Message {
-  id?: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
+import { SqlViewer } from '../components/SqlViewer';
+import { Ifrs9EclViewer } from '../components/Ifrs9EclViewer';
 
 export default function ComponentShowcase() {
   const [activeTab, setActiveTab] = useState<'tsql' | 'ifrs9'>('tsql');
-  const [datePickerDate, setDatePickerDate] = useState<Date | undefined>(new Date());
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 font-sans dir-rtl" dir="rtl">
-      {/* الهيدر الرئيسي للمنصة */}
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 font-sans" dir="rtl">
+      {/* رأس الصفحة الرئيسي */}
       <header className="mb-6 border-b border-slate-800 pb-4 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
@@ -31,18 +21,20 @@ export default function ComponentShowcase() {
           </p>
         </div>
 
-        {/* منتقي التاريخ والوقت (Date Picker) */}
+        {/* عرض التاريخ والوقت المباشر */}
         <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
           <CalendarIcon className="w-4 h-4 text-slate-400" />
           <span className="text-xs font-mono text-slate-300">
-            {datePickerDate
-              ? format(datePickerDate, 'PPP HH:mm', { locale: arSA })
-              : 'اختر التاريخ'}
+            {new Date().toLocaleDateString('ar-SA', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
           </span>
         </div>
       </header>
 
-      {/* شريط التنقل بين الأقسام (Tabs Navigation) */}
+      {/* شريط التنقل بين الاستعلامات ومحرك IFRS 9 */}
       <div className="flex items-center space-x-2 space-x-reverse mb-6 border-b border-slate-800 pb-3">
         <button
           onClick={() => setActiveTab('tsql')}
@@ -69,18 +61,18 @@ export default function ComponentShowcase() {
         </button>
       </div>
 
-      {/* عرض المكون النشط بناءً على التبويب المختار */}
+      {/* عرض الشاشة المحددة */}
       <main className="transition-all duration-300">
         {activeTab === 'tsql' && (
-          <section className="bg-slate-900 rounded-xl p-4 border border-slate-800">
+          <div className="bg-slate-900 rounded-xl p-4 border border-slate-800">
             <SqlViewer />
-          </section>
+          </div>
         )}
 
         {activeTab === 'ifrs9' && (
-          <section className="bg-slate-900 rounded-xl p-4 border border-slate-800">
+          <div className="bg-slate-900 rounded-xl p-4 border border-slate-800">
             <Ifrs9EclViewer />
-          </section>
+          </div>
         )}
       </main>
     </div>
