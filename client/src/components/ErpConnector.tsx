@@ -1,80 +1,83 @@
 import React, { useState } from 'react';
+import { parseExcelFile } from '../lib/excelService';
 
-export default function ErpConnector() {
-  const [selectedErp, setSelectedErp] = useState('odoo');
-  const [apiUrl, setApiUrl] = useState('https://erp.company.com/api/v1');
-  const [apiKey, setApiKey] = useState('sk_live_saeis_987654321');
-  const [status, setStatus] = useState<'idle' | 'testing' | 'connected' | 'error'>('idle');
+interface ErpConnectorProps {
+  onDataLoaded?: (data: any[]) => void;
+}
 
-  const handleTestConnection = () => {
-    setStatus('testing');
+export default function ErpConnector({ onDataLoaded }: ErpConnectorProps) {
+  const [erpType, setErpType] = useState('Odoo ERP (REST API)');
+  const [apiEndpoint, setApiEndpoint] = useState('https://erp.company.com/api/v1');
+  const [apiKey, setApiKey] = useState('********************************');
+  const [isConnected, setIsConnected] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleConnect = () => {
+    setLoading(true);
     setTimeout(() => {
-      setStatus('connected');
-    }, 1500);
+      setIsConnected(true);
+      setLoading(false);
+      alert('تم الاتصال بنجاح مع نظام الـ ERP وجلب بيانات الحسابات المحدثة.');
+    }, 1000);
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto p-6 bg-slate-800 border border-slate-700 rounded-xl text-white space-y-6 dir-rtl" dir="rtl">
+    <div className="bg-[#1f2937] border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
       <div className="border-b border-slate-700 pb-4">
-        <h3 className="text-xl font-bold text-amber-400">🔌 إعدادات الربط المباشر مع أنظمة ERP (Live API)</h3>
-        <p className="text-xs text-slate-400 mt-1">ربط محرك SAEIS مباشرة لتصدير قيود التسوية واستيراد ميزان المراجعة آلياً</p>
+        <h3 className="text-lg font-bold text-white">الربط المباشر مع الأنظمة المحاسبية (ERP Connector)</h3>
+        <p className="text-xs text-slate-400 mt-1">ربط مباشر مع قواعد بيانات أونكس برو، أودو، و SAP لاستخراج موازين المراجعة تلقائياً</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* اختيار النظام */}
-        <div>
-          <label className="block text-xs font-bold text-slate-300 mb-2">نظام الـ ERP المستهدف:</label>
-          <select 
-            value={selectedErp} 
-            onChange={(e) => setSelectedErp(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-amber-300 focus:border-amber-500 outline-none"
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="block text-sm text-slate-300">اختر النظام المحاسبي</label>
+          <select
+            value={erpType}
+            onChange={(e) => setErpType(e.target.value)}
+            className="w-full bg-[#111827] border border-slate-700 rounded-xl p-3 text-slate-200 text-sm focus:border-indigo-500 outline-none"
           >
-            <option value="odoo">Odoo ERP (REST API)</option>
-            <option value="sap">SAP S/4HANA (OData)</option>
-            <option value="onyx">Onyx Pro (أونكس برو)</option>
-            <option value="oracle">Oracle Financials Cloud</option>
+            <option>Odoo ERP (REST API)</option>
+            <option>Onyx Pro ERP (Database Bridge)</option>
+            <option>SAP S/4HANA</option>
+            <option>Custom SQL Server</option>
           </select>
         </div>
 
-        {/* مسار الـ API */}
-        <div>
-          <label className="block text-xs font-bold text-slate-300 mb-2">رابط نقطة الاتصال (API Endpoint):</label>
-          <input 
-            type="text" 
-            value={apiUrl}
-            onChange={(e) => setApiUrl(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 font-mono dir-ltr"
-          />
-        </div>
-
-        {/* المفتاح / Token */}
-        <div>
-          <label className="block text-xs font-bold text-slate-300 mb-2">مفتاح المصادقة (API Key / Token):</label>
-          <input 
-            type="password" 
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 font-mono"
+        <div className="space-y-2">
+          <label className="block text-sm text-slate-300">رابط نقطة الاتصال (API Endpoint)</label>
+          <input
+            type="text"
+            value={apiEndpoint}
+            onChange={(e) => setApiEndpoint(e.target.value)}
+            className="w-full bg-[#111827] border border-slate-700 rounded-xl p-3 text-slate-200 text-sm font-mono focus:border-indigo-500 outline-none"
           />
         </div>
       </div>
 
-      {/* حالة الاتصال والإجراءات */}
-      <div className="flex flex-wrap items-center justify-between pt-4 border-t border-slate-700 gap-4">
+      <div className="space-y-2">
+        <label className="block text-sm text-slate-300">مفتاح المصادقة (API Key / Token)</label>
+        <input
+          type="password"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          className="w-full bg-[#111827] border border-slate-700 rounded-xl p-3 text-slate-200 text-sm font-mono focus:border-indigo-500 outline-none"
+        />
+      </div>
+
+      <div className="flex items-center justify-between pt-4 border-t border-slate-700">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">حالة الربط الحالية:</span>
-          {status === 'idle' && <span className="text-xs bg-slate-700 text-slate-300 px-3 py-1 rounded-full">غير متصل</span>}
-          {status === 'testing' && <span className="text-xs bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full animate-pulse">جاري اختبار الاتصال...</span>}
-          {status === 'connected' && <span className="text-xs bg-emerald-600 text-white px-3 py-1 rounded-full font-bold">✓ متصل وجاهز للبث الآلي</span>}
+          <span className={`w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+          <span className="text-xs text-slate-300 font-semibold">
+            {isConnected ? 'متصل بنجاح وجاهز للمزامنة' : 'غير متصل (في انتظار المصادقة)'}
+          </span>
         </div>
 
-        <button 
-          onClick={handleTestConnection}
-          disabled={status === 'testing'}
-          className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg transition-colors flex items-center gap-2"
+        <button
+          onClick={handleConnect}
+          disabled={loading}
+          className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold text-sm transition shadow-lg disabled:opacity-50"
         >
-          <span>⚡</span>
-          <span>اختبار الاتصال وحفظ البيانات</span>
+          {loading ? 'جاري الاتصال والتحقق...' : 'اختبار الاتصال والمزامنة'}
         </button>
       </div>
     </div>

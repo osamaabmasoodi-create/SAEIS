@@ -1,149 +1,93 @@
 import React, { useState } from 'react';
-import { X, Upload, CheckCircle, AlertCircle, FileText, Database } from 'lucide-react';
+import { parseExcelFile } from '../lib/excelService';
 
 interface ERPUploadDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onUploadSuccess?: () => void;
+  onDataLoaded?: (data: any[]) => void;
 }
 
-export const ERPUploadDialog: React.FC<ERPUploadDialogProps> = ({
-  isOpen,
-  onClose,
-  onUploadSuccess
-}) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [erpType, setErpType] = useState<string>('onyx');
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+export default function ERPUploadDialog({ isOpen, onClose, onDataLoaded }: ERPUploadDialogProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
   if (!isOpen) return null;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      setSelectedFile(files[0]);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!file) return;
+  const handleUploadProcess = async () => {
+    if (!selectedFile) {
+      alert('يرجى اختيار ملف Excel / CSV أولاً.');
+      return;
+    }
 
-    setIsUploading(true);
+    try {
+      setLoading(true);
+      const parsedData = await parseExcelFile(selectedFile);
 
-    // محاكاة عملية رفع الملف والمعالجة
-    setTimeout(() => {
-      setIsUploading(false);
-      setIsSuccess(true);
-      setTimeout(() => {
-        setIsSuccess(false);
-        setFile(null);
-        if (onUploadSuccess) onUploadSuccess();
-        onClose();
-      }, 1500);
-    }, 2000);
+      if (onDataLoaded) {
+        onDataLoaded(parsedData);
+      }
+
+      alert(`تم استيراد الملف "${selectedFile.name}" بنجاح وتحديث ${parsedData.length} سجل.`);
+      setLoading(false);
+      onClose();
+    } catch (error) {
+      console.error("خطأ أثناء قراءة ملف Excel:", error);
+      alert("حدث خطأ أثناء قراءة الملف، تأكد من صحة التنسيق.");
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm dir-rtl">
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative text-right">
-        {/* زر الإغلاق */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 left-4 text-gray-400 hover:text-white p-1 rounded-lg transition-colors"
-        >
-          <X size={20} />
-        </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-[#1f2937] border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-6">
+        <div className="flex justify-between items-center border-b border-slate-700 pb-4">
+          <h3 className="text-lg font-bold text-white">رفع ملف البيانات (Excel / CSV)</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white text-xl">✕</button>
+        </div>
 
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-blue-600/20 border border-blue-500/30 rounded-xl text-blue-400">
-            <Database size={24} />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-white">استيراد بيانات من ERP</h3>
-            <p className="text-xs text-gray-400">رفع ميزان المراجعة أو القوائم المالية المباشرة</p>
+        <div className="space-y-4">
+          <label className="block text-sm text-slate-300 mb-2">اختر ملف البيانات</label>
+          <div className="border-2 border-dashed border-slate-700 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500 transition">
+            <input
+              type="file"
+              accept=".xlsx, .xls, .csv"
+              onChange={handleFileChange}
+              className="hidden"
+              id="file-upload-input"
+            />
+            <label htmlFor="file-upload-input" className="cursor-pointer">
+              {selectedFile ? (
+                <span className="text-emerald-400 font-semibold">{selectedFile.name}</span>
+              ) : (
+                <span className="text-slate-400">اسحب الملف هنا أو انقر لاختيار ملف Excel / CSV</span>
+              )}
+            </label>
           </div>
         </div>
 
-        {isSuccess ? (
-          <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
-            <CheckCircle size={48} className="text-emerald-500 animate-bounce" />
-            <h4 className="text-lg font-bold text-white">تم الاستيراد بنجاح!</h4>
-            <p className="text-xs text-gray-400">جاري مطابقة البيانات مع معايير IFRS...</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* اختيار نظام ERP */}
-            <div>
-              <label className="block text-xs font-medium text-gray-300 mb-2">
-                اختر نظام الـ ERP:
-              </label>
-              <select
-                value={erpType}
-                onChange={(e) => setErpType(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-              >
-                <option value="onyx">Onyx Pro (أونكس برو)</option>
-                <option value="odoo">Odoo ERP</option>
-                <option value="sap">SAP Business One</option>
-                <option value="oracle">Oracle Financials</option>
-                <option value="excel">ملف Excel / CSV عام</option>
-              </select>
-            </div>
-
-            {/* منطقة رفع الملف */}
-            <div>
-              <label className="block text-xs font-medium text-gray-300 mb-2">
-                ملف البيانات (Excel, CSV, XML):
-              </label>
-              <div className="border-2 border-dashed border-gray-700 hover:border-blue-500 rounded-xl p-6 text-center cursor-pointer transition-colors bg-gray-850 relative">
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  accept=".xlsx, .xls, .csv, .xml"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                <div className="flex flex-col items-center gap-2">
-                  <Upload size={32} className="text-blue-400" />
-                  {file ? (
-                    <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
-                      <FileText size={16} />
-                      {file.name}
-                    </div>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium text-gray-300">
-                        اسحب الملف هنا أو اضغط للاختيار
-                      </p>
-                      <p className="text-xs text-gray-500">يدعم ملفات XLSX, CSV بحد أقصى 25MB</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* زر الإرسال */}
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={!file || isUploading}
-                className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
-              >
-                {isUploading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    جاري الاستيراد والتحليل...
-                  </>
-                ) : (
-                  'بدء الاستيراد والربط'
-                )}
-              </button>
-            </div>
-          </form>
-        )}
+        <div className="flex justify-end gap-3 border-t border-slate-700 pt-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition"
+          >
+            إلغاء
+          </button>
+          <button
+            onClick={handleUploadProcess}
+            disabled={loading || !selectedFile}
+            className="px-5 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-500 disabled:opacity-50 transition"
+          >
+            {loading ? 'جاري المعالجة والتدقيق...' : 'بدء المعالجة'}
+          </button>
+        </div>
       </div>
     </div>
   );
-};
-
-export default ERPUploadDialog;
+}
