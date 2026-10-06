@@ -1,108 +1,66 @@
-import React, { useState } from 'react';
-import { 
-  BarChart3, 
-  FileCheck, 
-  Database, 
-  Wrench, 
-  Bot, 
-  Upload, 
-  Layers 
-} from 'lucide-react';
-import ERPUploadDialog from './ERPUploadDialog';
-
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-  activeTab?: string;
-  setActiveTab?: (tab: string) => void;
-}
-
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
-  children,
-  activeTab = 'cfo',
-  setActiveTab
-}) => {
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
-
-  const navItems = [
-    { id: 'cfo', label: 'نقاط التدقيق والتحليل', icon: BarChart3 },
-    { id: 'ifrs', label: 'معايير IFRS', icon: FileCheck },
-    { id: 'erp', label: 'الربط المباشر (ERP)', icon: Database },
-    { id: 'engine', label: 'محرك التصحيح', icon: Wrench },
-    { id: 'chat', label: 'المستشار الذكي (CFO AI)', icon: Bot },
-  ];
-
-  return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 font-sans dir-rtl">
-      {/* الهيدر العلوي الموحد */}
-      <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            
-            {/* الشعار والاسم */}
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-600 rounded-xl text-white font-black tracking-wider shadow-lg shadow-blue-500/20">
-                SAEIS
-              </div>
-              <div>
-                <h1 className="text-base font-bold text-white flex items-center gap-2">
-                  منظومة SAEIS للتدقيق المالي والربط الذكي
-                </h1>
-                <p className="text-[11px] text-gray-400">
-                  نظام المراجعة الذكية والحسابات الختامية وفق معايير التقرير المالي الدولية IFRS
-                </p>
-              </div>
-            </div>
-
-            {/* أزرار الإجراءات السريعة */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsUploadOpen(true)}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors shadow-md shadow-blue-600/20"
-              >
-                <Upload size={15} />
-                رفع ملف البيانات (Excel / CSV)
-              </button>
-            </div>
-          </div>
-
-          {/* شريط التبويبات الرئيسي */}
-          {setActiveTab && (
-            <div className="flex items-center gap-2 border-t border-gray-800/80 pt-2 pb-1 overflow-x-auto text-xs no-scrollbar">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
-                      isActive
-                        ? 'bg-blue-600/20 border border-blue-500/40 text-blue-400 shadow-sm'
-                        : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/60'
-                    }`}
-                  >
-                    <Icon size={16} />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+{/* ========================================================= */}
+{/* محرك التقييم الائتماني التلقائي للعملاء (SAEIS Credit Engine) */}
+{/* ========================================================= */}
+<div className="p-6 bg-[#252526] text-gray-100 rounded-lg shadow-md my-4" dir="rtl">
+    <div className="flex justify-between items-center mb-4">
+        <div>
+            <h2 className="text-xl font-bold text-amber-400 mb-1">مُحرك التقييم الائتماني التلقائي للعملاء (Automated Credit Scoring)</h2>
+            <p className="text-sm text-gray-400">تحليل سلوك السداد للعملاء المستخرج من نظام الـ ERP وتحديد التصنيف الائتماني وتوصيات سقوف البيع الآجل.</p>
         </div>
-      </header>
-
-      {/* المحتوى الرئيسي */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {children}
-      </main>
-
-      {/* نافذة رفع البيانات */}
-      <ERPUploadDialog
-        isOpen={isUploadOpen}
-        onClose={() => setIsUploadOpen(false)}
-      />
+        <span className="bg-amber-500/10 text-amber-400 px-3 py-1 rounded text-xs font-semibold border border-amber-500/20">نشط ومتصل بالـ ERP</span>
     </div>
-  );
-};
-
-export default DashboardLayout;
+    
+    <div className="overflow-x-auto">
+        <table className="w-full border-collapse bg-[#1e1e1e] rounded-md overflow-hidden text-right">
+            <thead>
+                <tr className="bg-[#333] text-amber-400">
+                    <th className="p-3">رقم العميل</th>
+                    <th className="p-3">اسم العميل / الشركة</th>
+                    <th className="p-3">إجمالي الذمم (SAR)</th>
+                    <th className="p-3">متوسط أيام التحصيل (DSO)</th>
+                    <th className="p-3">نسبة الالتزام (CPR)</th>
+                    <th className="p-3">التصنيف الائتماني</th>
+                    <th className="p-3">الإجراء والتوصية الآلية</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr className="border-b border-gray-800 hover:bg-[#2a2a2a]">
+                    <td className="p-3">1042</td>
+                    <td className="p-3 font-medium">شركة الأفق لتجارة التجزئة</td>
+                    <td className="p-3">$45,000</td>
+                    <td className="p-3">28 يوم</td>
+                    <td className="p-3 text-green-400">94%</td>
+                    <td className="p-3"><span className="px-2 py-1 rounded text-white font-bold bg-green-700">A</span></td>
+                    <td className="p-3 text-gray-300">السماح بزيادة السقف الائتماني بنسبة 20%</td>
+                </tr>
+                <tr className="border-b border-gray-800 hover:bg-[#2a2a2a]">
+                    <td className="p-3">1088</td>
+                    <td className="p-3 font-medium">مؤسسة النور للمقاولات</td>
+                    <td className="p-3">$82,000</td>
+                    <td className="p-3">45 يوم</td>
+                    <td className="p-3 text-blue-400">80%</td>
+                    <td className="p-3"><span className="px-2 py-1 rounded text-white font-bold bg-blue-700">B</span></td>
+                    <td className="p-3 text-gray-300">الحفاظ على السقف الائتماني الحالي</td>
+                </tr>
+                <tr className="border-b border-gray-800 hover:bg-[#2a2a2a]">
+                    <td className="p-3">1105</td>
+                    <td className="p-3 font-medium">النبلاء للخدمات التجريبية</td>
+                    <td className="p-3">$64,000</td>
+                    <td className="p-3">68 يوم</td>
+                    <td className="p-3 text-orange-400">62%</td>
+                    <td className="p-3"><span className="px-2 py-1 rounded text-white font-bold bg-orange-600">C</span></td>
+                    <td className="p-3 text-gray-300">تقييد المبيعات النقدية واشتراط سداد الدفعة السابقة</td>
+                </tr>
+                <tr className="border-b border-gray-800 hover:bg-[#2a2a2a]">
+                    <td className="p-3">1150</td>
+                    <td className="p-3 font-medium">شركة الخليج الحديثة</td>
+                    <td className="p-3">$120,000</td>
+                    <td className="p-3">95 يوم</td>
+                    <td className="p-3 text-red-400">42%</td>
+                    <td className="p-3"><span className="px-2 py-1 rounded text-white font-bold bg-red-700">D</span></td>
+                    <td className="p-3 text-gray-300">إيقاف فوري للبيع الآجل وتحويل الملف للتحصيل القانوني</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

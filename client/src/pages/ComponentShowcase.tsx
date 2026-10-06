@@ -1,77 +1,75 @@
 import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Database, ShieldCheck } from 'lucide-react';
-
-import { SqlViewer } from '../components/SqlViewer';
-import { Ifrs9EclViewer } from '../components/Ifrs9EclViewer';
+import SqlViewer from '../components/SqlViewer';
+import Ifrs9EclViewer from '../components/Ifrs9EclViewer';
+import ErpConnector from '../components/ErpConnector';
 
 export default function ComponentShowcase() {
-  const [activeTab, setActiveTab] = useState<'tsql' | 'ifrs9'>('tsql');
+  const [activeTab, setActiveTab] = useState('tsql');
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 font-sans" dir="rtl">
-      {/* رأس الصفحة الرئيسي */}
-      <header className="mb-6 border-b border-slate-800 pb-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
-            <ShieldCheck className="w-7 h-7 text-amber-500" />
-            نظام SAEIS - منصة التدقيق والربط الذكي
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            لوحة التحكم المركزية وفحص المعايير المحاسبية الدولية (IFRS/IAS)
-          </p>
-        </div>
-
-        {/* عرض التاريخ والوقت المباشر */}
-        <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-          <CalendarIcon className="w-4 h-4 text-slate-400" />
-          <span className="text-xs font-mono text-slate-300">
-            {new Date().toLocaleDateString('ar-SA', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </span>
+    <div className="min-h-screen bg-[#111827] text-slate-100 flex flex-col font-sans" dir="rtl">
+      {/* Top Header */}
+      <header className="bg-[#1f2937] border-b border-slate-800 px-6 py-4 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="bg-indigo-600 text-white font-bold p-2.5 rounded-xl shadow text-sm">SAEIS</div>
+          <div>
+            <h1 className="text-base font-bold text-white">منظومة SAEIS للتدقيق المالي والربط الذكي</h1>
+            <p className="text-[11px] text-slate-400">منظومة الذكاء الاصطناعي للتدقيق المالي وامتثال معايير التقارير المالية IFRS</p>
+          </div>
         </div>
       </header>
 
-      {/* شريط التنقل بين الاستعلامات ومحرك IFRS 9 */}
-      <div className="flex items-center space-x-2 space-x-reverse mb-6 border-b border-slate-800 pb-3">
+      {/* Navigation Sub-Tabs */}
+      <nav className="bg-[#1f2937]/60 border-b border-slate-800 px-6 py-3 flex gap-3 overflow-x-auto text-xs">
         <button
           onClick={() => setActiveTab('tsql')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+          className={`px-4 py-2 rounded-xl font-semibold transition ${
             activeTab === 'tsql'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-              : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+              ? 'bg-amber-600 text-white shadow-lg'
+              : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
           }`}
         >
-          <Database className="w-4 h-4" />
-          قواعد البيانات واستعلامات T-SQL
+          استعلامات T-SQL
         </button>
-
         <button
           onClick={() => setActiveTab('ifrs9')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+          className={`px-4 py-2 rounded-xl font-semibold transition ${
             activeTab === 'ifrs9'
-              ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/20'
-              : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+              ? 'bg-amber-600 text-white shadow-lg'
+              : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
           }`}
         >
-          <ShieldCheck className="w-4 h-4" />
-          محرك IFRS 9 (الخسائر الائتمانية المتوقعة)
+          معيار IFRS 9 (الخسائر الائتمانية المتوقعة)
         </button>
-      </div>
+        <button
+          onClick={() => setActiveTab('erp')}
+          className={`px-4 py-2 rounded-xl font-semibold transition ${
+            activeTab === 'erp'
+              ? 'bg-amber-600 text-white shadow-lg'
+              : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+          }`}
+        >
+          الربط المباشر (ERP)
+        </button>
+      </nav>
 
-      {/* عرض الشاشة المحددة */}
-      <main className="transition-all duration-300">
+      {/* Main Content Area */}
+      <main className="flex-1 transition-all duration-300 p-6">
         {activeTab === 'tsql' && (
-          <div className="bg-slate-900 rounded-xl p-4 border border-slate-800">
+          <div className="bg-slate-900 rounded-xl p-4 border border-slate-800 shadow-xl">
             <SqlViewer />
           </div>
         )}
 
         {activeTab === 'ifrs9' && (
-          <div className="bg-slate-900 rounded-xl p-4 border border-slate-800">
+          <div className="bg-slate-900 rounded-xl p-4 border border-slate-800 shadow-xl">
             <Ifrs9EclViewer />
+          </div>
+        )}
+
+        {activeTab === 'erp' && (
+          <div className="bg-slate-900 rounded-xl p-4 border border-slate-800 shadow-xl">
+            <ErpConnector />
           </div>
         )}
       </main>
