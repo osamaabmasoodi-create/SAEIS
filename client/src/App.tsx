@@ -5,7 +5,7 @@ import CorrectionEngine from './components/CorrectionEngine';
 import AuditRulesIFRS from './components/AuditRulesIFRS';
 import SqlViewer from './components/SqlViewer';
 import CreditScoringComponent from './components/creditScoringComponet';
-
+import CfoAdvisorView from './components/CfoAdvisorView';
 interface StandardItem {
   code: string;
   title: string;
@@ -498,7 +498,7 @@ export default function App() {
             activeTab === 'cfo' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
-          المستشار الذكي CFO AI 🤖
+          المستشار الذكي CFO AI
         </button>
       </nav>
 
@@ -507,7 +507,7 @@ export default function App() {
         {activeTab === 'analytics' && <AuditAnalytics />}
         {activeTab === 'credit' && <CreditScoringComponent />}
         {activeTab === 'correction' && <CorrectionEngine />}
-        
+        {activeTab === 'cfo' && <CfoAdvisorView />}
         {/* شاشة سوق المدققين المستقلين الجديدة (Auditors Marketplace) */}
         {activeTab === 'marketplace' && (
           <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
