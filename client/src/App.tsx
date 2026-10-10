@@ -316,7 +316,37 @@ export default function App() {
       setChatHistory(prev => [...prev, { sender: 'ai', text: aiReply }]);
     }, 800);
   };
+  const handleUploadAndAudit = async () => {
+     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+  if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+   alert("يرجى اختيار ملف Excel أولاً");
+   return;
+ }
 
+    try {
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      const response = await fetch('/api/audit/upload-file', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log("نتائج التدقيق الحقيقية:", result.data);
+        setModalErpSystem(result.data.fileName);
+        setShowUploadModal(false);
+        alert(`تم التدقيق بنجاح! نسبة الامتثال: ${result.data.complianceRate}`);
+      } else {
+        alert("فشل في معالجة الملف من الخادم.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("حدث خطأ أثناء الاتصال بالخادم.");
+    }
+  };
   return (
     <AppProvider>
       <div className="min-h-screen bg-slate-900 text-slate-100 p-4 flex flex-col gap-4 font-sans" dir="rtl">
@@ -1069,14 +1099,11 @@ export default function App() {
               </label>
 
               <button
-                onClick={() => {
-                  alert("تمت معالجة وتدقيق الملف بنجاح!");
-                  setShowUploadModal(false);
-                }}
-                className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 mt-2"
-              >
-                <span>بدء المعالجة والتدقيق</span>
-              </button>
+  onClick={handleUploadAndAudit}
+  className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 mt-4"
+>
+  <span>بدء المعالجة والتدقيق 🚀</span>
+</button>
             </div>
           </div>
         )}
