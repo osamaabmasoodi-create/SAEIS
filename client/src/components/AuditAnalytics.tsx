@@ -1,141 +1,159 @@
 import React, { useState } from 'react';
 
 interface AuditAnalyticsProps {
+  auditData?: any;
   onExport?: () => void;
   onImport?: () => void;
 }
 
-const AuditAnalytics: React.FC<AuditAnalyticsProps> = ({ onExport, onImport }) => {
+const AuditAnalytics: React.FC<AuditAnalyticsProps> = ({ auditData, onExport, onImport }) => {
   const [isPosting, setIsPosting] = useState(false);
   const [isPosted, setIsPosted] = useState(false);
+
+  // قراءة البيانات المركزية من الملف المرفوع أو استخدام القيم الافتراضية
+  const totalAccounts = auditData?.totalAccounts || auditData?.totalRows || 2000;
+  const complianceRate = auditData?.complianceRate || 99.95;
+  const fileName = auditData?.fileName || 'Nova 2000.xlsx';
+  const isBalanced = auditData?.isBalanced ?? false;
+  const varianceAmount = auditData?.varianceAmount || 10238886.71;
 
   const handlePostToERP = () => {
     setIsPosting(true);
     setTimeout(() => {
       setIsPosting(false);
       setIsPosted(true);
-      alert('✅ تم ترحيل القيود التصحيحية الأربعة بنجاح إلى نظام ERP عبر API المتصل!');
+      alert('تم ترحيل القيود التصحيحية الأربعة بنجاح إلى نظام الـ ERP');
     }, 1500);
   };
 
   return (
-    <div className="space-y-6">
-      {/* شريط الأزرار والمؤشرات */}
-      <div className="flex flex-wrap justify-between items-center bg-slate-800/90 p-4 rounded-xl border border-slate-700 shadow-lg gap-4">
+    <div className="space-y-6 text-right font-sans" dir="rtl">
+      {/* شريط الأزرار والمؤشرات العلوي */}
+      <div className="flex flex-wrap justify-between items-center bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl gap-4">
         <div>
           <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <span>📊</span> لوحة التحليلات والتعديلات الهيكلية (CFO View)
+            <span>لوحة التحليلات والتعديلات الهيكلية (CFO View)</span>
           </h1>
-          <p className="text-sm text-slate-400">منظومة SAEIS للتدقيق المالي والربط الذكي مع أنظمة ERP</p>
+          <p className="text-sm text-slate-400 mt-1">
+            منظومة SAEIS - تحليل الفروقات والامتثال للمعايير لملف ({fileName})
+          </p>
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={onImport}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition flex items-center gap-2 border border-slate-600"
-          >
-            📥 رفع ملف البيانات (Excel / CSV)
-          </button>
-          <button
-            onClick={onExport}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-lg shadow-emerald-900/30"
-          >
-            📄 تصدير التقرير (PDF)
-          </button>
+          {onImport && (
+            <button
+              onClick={onImport}
+              className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl text-xs font-bold transition border border-slate-700"
+            >
+              استيراد ميزان آخر
+            </button>
+          )}
+          {onExport && (
+            <button
+              onClick={onExport}
+              className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-lg"
+            >
+              تصدير التقرير
+            </button>
+          )}
         </div>
       </div>
 
-      {/* بطاقات المؤشرات الرقمية */}
+      {/* بطاقات الكروت التحليلية 4 كروت */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-slate-800/60 border border-slate-700 p-4 rounded-xl">
-          <p className="text-xs text-slate-400 mb-1">معدل الامتثال</p>
-          <p className="text-2xl font-bold text-emerald-400">97.8%</p>
+        <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-1">
+          <span className="text-[11px] text-slate-400">إجمالي الحسابات المفحوصة</span>
+          <span className="text-lg font-bold text-amber-400">{totalAccounts.toLocaleString()} حساب</span>
+          <span className="text-[10px] text-amber-500/80">الملف: {fileName}</span>
         </div>
-        <div className="bg-slate-800/60 border border-slate-700 p-4 rounded-xl">
-          <p className="text-xs text-slate-400 mb-1">القيود المخالفة</p>
-          <p className="text-2xl font-bold text-rose-400">16 قيداً</p>
-        </div>
-        <div className="bg-slate-800/60 border border-slate-700 p-4 rounded-xl">
-          <p className="text-xs text-slate-400 mb-1">أثر IFRS 16</p>
-          <p className="text-2xl font-bold text-amber-400">$120,000</p>
-        </div>
-        <div className="bg-slate-800/60 border border-slate-700 p-4 rounded-xl">
-          <p className="text-xs text-slate-400 mb-1">مخصص IFRS 9</p>
-          <p className="text-2xl font-bold text-indigo-400">$18,500</p>
-        </div>
-      </div>
 
-      {/* جدول التحفظات وقيود التسوية */}
-      <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-xl">
-        <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <span>📋</span> ملخص التحفظات المكتشفة وقيود التسوية المقترحة
-          </h2>
+        <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-1">
+          <span className="text-[11px] text-slate-400">مؤشر الامتثال لـ IFRS</span>
+          <span className="text-lg font-bold text-emerald-400">{complianceRate}%</span>
+          <span className="text-[10px] text-emerald-500/80">مطابقة عالية جداً</span>
+        </div>
+
+        <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-1">
+          <span className="text-[11px] text-slate-400">حالة توازن ميزان المراجعة</span>
+          <span className={`text-lg font-bold ${isBalanced ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {isBalanced ? 'متوازن' : 'غير متوازن'}
+          </span>
+          <span className="text-[10px] text-rose-500/80">الفارق: ${varianceAmount.toLocaleString()}</span>
+        </div>
+
+        <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-1">
+          <span className="text-[11px] text-slate-400">ترحيل التسويات للـ ERP</span>
           <button
             onClick={handlePostToERP}
             disabled={isPosting || isPosted}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 ${
+            className={`mt-1 py-1.5 px-3 rounded-xl text-xs font-bold transition shadow ${
               isPosted
-                ? 'bg-emerald-950 text-emerald-400 border border-emerald-700 cursor-default'
-                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-900/40'
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'bg-amber-600 hover:bg-amber-500 text-white'
             }`}
           >
-            {isPosting ? '⏳ جاري الترحيل إلى ERP...' : isPosted ? '✅ تم ترحيل القيود إلى ERP بنجاح' : '🚀 ترحيل القيود التصحيحية تلقائياً إلى ERP'}
+            {isPosting ? 'جاري الترحيل...' : isPosted ? 'تم الترحيل للـ ERP' : 'ترحيل القيود الآن'}
           </button>
         </div>
+      </div>
 
+      {/* جدول القيود والتسويات المكتشفة */}
+      <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
+        <h3 className="text-sm font-bold text-slate-200 border-b border-slate-800 pb-3">
+          التحفظات المكتشفة وقيد التسوية المقترح وفق معايير IFRS
+        </h3>
         <div className="overflow-x-auto">
-          <table className="w-full text-right text-sm">
-            <thead className="bg-slate-900/60 text-slate-400 border-b border-slate-700">
-              <tr>
-                <th className="p-3">المعيار الدولي</th>
-                <th className="p-3">وصف المعالجة الحالي</th>
-                <th className="p-3">الأثر المالي ($)</th>
-                <th className="p-3">القيد التصحيحي المقترح</th>
-                <th className="p-3 text-center">حالة الترحيل</th>
+          <table className="w-full border-collapse text-right">
+            <thead>
+              <tr className="bg-slate-900 text-slate-300 text-[11px]">
+                <th className="p-3 border border-slate-800">المعيار</th>
+                <th className="p-3 border border-slate-800">وصف المعالجة الحالية</th>
+                <th className="p-3 border border-slate-800">التصحيح المقترح</th>
+                <th className="p-3 border border-slate-800">الأثر المالي ($)</th>
+                <th className="p-3 border border-slate-800 text-center">الحالة</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700/50 text-slate-200">
+            <tbody className="text-xs text-slate-200 divide-y divide-slate-800">
               <tr>
-                <td className="p-3 font-semibold text-amber-400">IAS 16</td>
-                <td className="p-3">رأسمالة مصاريف صيانة دورية كأصل ثابت بشكل خاطئ</td>
-                <td className="p-3 text-rose-400 font-medium">$25,000</td>
-                <td className="p-3">فصل المبالغ وتحويلها لحساب مصروف الصيانة التشغيلي</td>
-                <td className="p-3 text-center">
-                  <span className={`px-2 py-1 text-xs rounded-full ${isPosted ? 'bg-emerald-900/60 text-emerald-300' : 'bg-amber-900/60 text-amber-300'}`}>
-                    {isPosted ? 'مُرحَّل' : 'معلق'}
+                <td className="p-3 font-semibold text-amber-400 border border-slate-800">IAS 16</td>
+                <td className="p-3 border border-slate-800">رأسمالة مصاريف غير مؤهلة عبر الأصول الضخمة</td>
+                <td className="p-3 border border-slate-800 text-emerald-400">فصل وتصحيح قيود الأصول الثابتة والصيانة</td>
+                <td className="p-3 border border-slate-800 font-mono text-rose-400">$7,500</td>
+                <td className="p-3 border border-slate-800 text-center">
+                  <span className={`px-2.5 py-1 text-[10px] rounded-full font-bold ${isPosted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                    {isPosted ? 'مُرَحَّل' : 'معلق'}
                   </span>
                 </td>
               </tr>
               <tr>
-                <td className="p-3 font-semibold text-amber-400">IFRS 16</td>
-                <td className="p-3">تحميل عقود إيجار التشغيل للمصروف مباشرة بدلاً من أصل ROU</td>
-                <td className="p-3 text-emerald-400 font-medium">$120,000</td>
-                <td className="p-3">إثبات أصل حق الاستخدام (ROU Asset) مقابل التزام الإيجار</td>
-                <td className="p-3 text-center">
-                  <span className={`px-2 py-1 text-xs rounded-full ${isPosted ? 'bg-emerald-900/60 text-emerald-300' : 'bg-amber-900/60 text-amber-300'}`}>
-                    {isPosted ? 'مُرحَّل' : 'معلق'}
+                <td className="p-3 font-semibold text-amber-400 border border-slate-800">IFRS 16</td>
+                <td className="p-3 border border-slate-800">معالجة محفظة عقود الإيجار الشاملة</td>
+                <td className="p-3 border border-slate-800 text-emerald-400">إثبات أصل حق الاستخدام والالتزام الإيجاري الموحد</td>
+                <td className="p-3 border border-slate-800 font-mono text-amber-400">$24,000</td>
+                <td className="p-3 border border-slate-800 text-center">
+                  <span className={`px-2.5 py-1 text-[10px] rounded-full font-bold ${isPosted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                    {isPosted ? 'مُرَحَّل' : 'معلق'}
                   </span>
                 </td>
               </tr>
               <tr>
-                <td className="p-3 font-semibold text-amber-400">IFRS 9</td>
-                <td className="p-3">عدم احتساب مخصص خسائر ائتمانية متوقعة للذمم المتقادمة</td>
-                <td className="p-3 text-rose-400 font-medium">$18,500</td>
-                <td className="p-3">قيد مصروف الخسائر الائتمانية مقابل مخصص ECL</td>
-                <td className="p-3 text-center">
-                  <span className={`px-2 py-1 text-xs rounded-full ${isPosted ? 'bg-emerald-900/60 text-emerald-300' : 'bg-amber-900/60 text-amber-300'}`}>
-                    {isPosted ? 'مُرحَّل' : 'معلق'}
+                <td className="p-3 font-semibold text-amber-400 border border-slate-800">IFRS 9</td>
+                <td className="p-3 border border-slate-800">نموذج الخسائر الائتمانية المتوقعة (ECL)</td>
+                <td className="p-3 border border-slate-800 text-emerald-400">تكوين مخصصات الديون المشكوك فيها حسب الشرائح</td>
+                <td className="p-3 border border-slate-800 font-mono text-rose-400">$18,500</td>
+                <td className="p-3 border border-slate-800 text-center">
+                  <span className={`px-2.5 py-1 text-[10px] rounded-full font-bold ${isPosted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                    {isPosted ? 'مُرَحَّل' : 'معلق'}
                   </span>
                 </td>
               </tr>
               <tr>
-                <td className="p-3 font-semibold text-amber-400">IFRS 15</td>
-                <td className="p-3">تسجيل دفعة مقدمة كإيراد مباشر قبل نقل السيطرة للعميل</td>
-                <td className="p-3 text-amber-400 font-medium">$45,000</td>
-                <td className="p-3">تحويل المبلغ إلى حساب التزام عقد (Contract Liability)</td>
-                <td className="p-3 text-center">
-                  <span className={`px-2 py-1 text-xs rounded-full ${isPosted ? 'bg-emerald-900/60 text-emerald-300' : 'bg-amber-900/60 text-amber-300'}`}>
-                    {isPosted ? 'مُرحَّل' : 'معلق'}
+                <td className="p-3 font-semibold text-amber-400 border border-slate-800">IFRS 15</td>
+                <td className="p-3 border border-slate-800">تدقيق الاعتراف بالإيرادات وعقود العملاء</td>
+                <td className="p-3 border border-slate-800 text-emerald-400">إعادة تخصيص التزامات الأداء والإيرادات المؤجلة</td>
+                <td className="p-3 border border-slate-800 font-mono text-amber-400">$45,000</td>
+                <td className="p-3 border border-slate-800 text-center">
+                  <span className={`px-2.5 py-1 text-[10px] rounded-full font-bold ${isPosted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                    {isPosted ? 'مُرَحَّل' : 'معلق'}
                   </span>
                 </td>
               </tr>
