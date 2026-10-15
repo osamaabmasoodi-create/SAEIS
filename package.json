@@ -12,6 +12,8 @@
     "@types/express": "^5.0.6",
     "@types/multer": "^2.3.0",
     "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/xlsx": "^0.0.35",
     "autoprefixer": "^10.6.1",
     "postcss": "^8.5.30",
