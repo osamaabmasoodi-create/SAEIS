@@ -644,26 +644,26 @@ export default function App() {
           </button>
         </nav>
 
-        {/* عرض الشاشة النشطة */}
-        <main className="flex-1">
-          {activeTab === 'analytics' && <AuditAnalytics />}
-          {activeTab === 'credit' && <CreditScoringComponent />}
-          {activeTab === 'correction' && <CorrectionEngine />}
-          {activeTab === 'ifrs16' && <LeaseEngineIFRS16 />}
-          {activeTab === 'fraud_room' && <FraudDetectionDashboard />}
-          {activeTab === 'batch_sync' && <BatchErpSyncHub />}
-          {activeTab === 'sql_hub' && <SqlConnectorHub />}
-          {activeTab === 'sp_hub' && <IfrsStoredProceduresHub />}
-          {activeTab === 'backup_hub' && <AutomatedBackupHub />}
-          {activeTab === 'smart_export' && <SmartExportHub />}
-          {activeTab === 'bank_rec' && <BankReconciliationHub />}
-          {activeTab === 'kpi_dashboard' && <KpiDashboardHub />}
-          {activeTab === 'kpi_charts' && <KpiChartsHub />}
-          {activeTab === 'gov_reports' && <GovernanceReportsHub />}
-          {activeTab === 'fraud_risk' && <FraudRiskMatrixHub />}
-          {activeTab === 'variance_hub' && <VarianceAnalysisHub />}
-          {activeTab === 'cfo' && <CfoAdvisorView auditData={auditData} />}
-        </main>
+       {/* العرض الفرعي للشاشة النشطة */}
+       <main className="flex-1">
+  {activeTab === 'analytics' && <AuditAnalytics />}
+  {activeTab === 'credit' && <CreditScoringComponent />}
+  {activeTab === 'correction' && <CorrectionEngine />}
+  {activeTab === 'ifrs16' && <LeaseEngineIFRS16 />}
+  {activeTab === 'fraud_room' && <FraudDetectionDashboard />}
+  {activeTab === 'batch_sync' && <BatchErpSyncHub />}
+  {activeTab === 'sql_hub' && <SqlConnectorHub />}
+  {activeTab === 'sp_hub' && <IfrsStoredProceduresHub />}
+  {activeTab === 'backup_hub' && <AutomatedBackupHub />}
+  {activeTab === 'smart_export' && <SmartExportHub />}
+  {activeTab === 'bank_rec' && <BankReconciliationHub />}
+  {activeTab === 'kpi_dashboard' && <KpiDashboardHub />}
+  {activeTab === 'kpi_charts' && <KpiChartsHub />}
+  {activeTab === 'gov_reports' && <GovernanceReportsHub />}
+  {activeTab === 'fraud_risk' && <FraudRiskMatrixHub />}
+  {activeTab === 'variance_hub' && <VarianceAnalysisHub />}
+  {activeTab === 'cfo' && <CfoAdvisorView auditData={auditData} />}
+</main>
 
         {/* شاشة سوق المدققين المستقلين */}
         {activeTab === 'marketplace' && (
@@ -1253,9 +1253,7 @@ export default function App() {
           </div>
         )}
 
-        {/* الشاشات الإضافية المدمجة */}
-        {activeTab === 'fraud_risk' && <FraudRiskMatrixHub />}
-        {activeTab === 'variance_hub' && <VarianceAnalysisHub />}
+        
 
         {/* نافذة رفع ملف البيانات المنبثقة */}
         {showUploadModal && (
