@@ -1,33 +1,31 @@
-import express from "express";
-import { createServer } from "http";
-import path from "path";
-import { fileURLToPath } from "url";
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import auditRoutes from './src/routes/auditRoutes.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+dotenv.config();
 
-async function startServer() {
-  const app = express();
-  const server = createServer(app);
+const app = express();
+const PORT = process.env.PORT || 5000;
 
-  // Serve static files from dist/public in production
-  const staticPath =
-    process.env.NODE_ENV === "production"
-      ? path.resolve(__dirname, "public")
-      : path.resolve(__dirname, "..", "dist", "public");
+app.use(cors({
+  origin: 'http://localhost:5175',
+  credentials: true
+}));
 
-  app.use(express.static(staticPath));
+app.use(express.json());
 
-  // Handle client-side routing - serve index.html for all routes
-  app.get("*", (_req, res) => {
-    res.sendFile(path.join(staticPath, "index.html"));
+// ربط مسار معالجة الإكسل والتدقيق
+app.use('/api/v1/audit', auditRoutes);
+
+app.get('/api/v1/health', (req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'SAEIS Backend API is running successfully!',
+    timestamp: new Date().toISOString()
   });
+});
 
-  const port = process.env.PORT || 3000;
-
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
-  });
-}
-
-startServer().catch(console.error);
+app.listen(PORT, () => {
+  console.log(`[SAEIS Server] Running on http://localhost:${PORT}`);
+});

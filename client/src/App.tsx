@@ -5,8 +5,22 @@ import AuditRulesIFRS from './components/AuditRulesIFRS';
 import SqlViewer from './components/SqlViewer';
 import CreditScoringComponent from './components/creditScoringComponet';
 import CfoAdvisorView from './components/CfoAdvisorView';
+import LeaseEngineIFRS16 from './components/LeaseEngineIFRS16';
+import FraudDetectionDashboard from './components/FraudDetectionDashboard';
+import BatchErpSyncHub from './components/BatchErpSyncHub';
+import SqlConnectorHub from './components/SqlConnectorHub';
+import IfrsStoredProceduresHub from './components/IfrsStoredProceduresHub';
+import AutomatedBackupHub from './components/AutomatedBackupHub';
+import SmartExportHub from './components/SmartExportHub';
+import BankReconciliationHub from './components/BankReconciliationHub';
+import KpiDashboardHub from './components/KpiDashboardHub';
+import KpiChartsHub from './components/KpiChartsHub';
+import GovernanceReportsHub from './components/GovernanceReportsHub';
+import FraudRiskMatrixHub from './components/FraudRiskMatrixHub';
+import VarianceAnalysisHub from './components/VarianceAnalysisHub';
 import { AppProvider } from './components/AppContext';
 import * as XLSX from 'xlsx';
+
 interface StandardItem {
   code: string;
   title: string;
@@ -96,7 +110,6 @@ export default function App() {
   const currentRevenue = auditData?.totalRevenue || 0;
   const currentProvision = auditData?.totalProvisions || inventoryProvision || 0;
   const currentAssets = auditData?.totalAssets || 9000000;
-
   const adjustedNetProfit = currentRevenue - currentProvision;
   const calculatedZakat = currentRevenue > 0 ? (adjustedNetProfit * (zakatRate / 100)).toFixed(2) : "0.00";
   const calculatedVat = currentRevenue > 0 ? (currentRevenue * (vatRate / 100)).toFixed(2) : "0.00";
@@ -110,9 +123,9 @@ export default function App() {
   ]);
 
   const [fraudAnomalies] = useState<FraudAnomalyItem[]>([
-    { id: 101, entryNumber: 'JE-2026-9012', riskType: 'فواتير مجزأة لتفادي صلاحيات الاعتماد', amount: 4900, reason: 'فواتير متتالية بقيمة أقل بقليل من حد اعتماد المدير المالي', riskLevel: 'عالي' },
-    { id: 102, entryNumber: 'JE-2026-8834', riskType: 'قيد مدخل خارج أوقات الدوام الرسمي', amount: 18500, reason: 'تم ترحيل القيد المحاسبي في الساعة ٢:٣٠ صباحاً يوم جمعة بواسطة مستخدم فرعي', riskLevel: 'متوسط' },
-    { id: 103, entryNumber: 'JE-2026-7721', riskType: 'تكرار قيد مصروفات لنفس المورد', amount: 1200, reason: 'وجود قيدين بنفس القيمة والبيان خلال أقل من ٢٤ ساعة', riskLevel: 'عالي' }
+    { id: 101, entryNumber: 'JE-2026-9012', riskType: 'فواتير مجزأة لتفادي صلاحيات الاعتماد', amount: 4900, riskLevel: 'عالي', reason: 'فواتير متتالية بقيمة أقل بقليل من حد اعتماد المدير المالي' },
+    { id: 102, entryNumber: 'JE-2026-8834', riskType: 'قيد مدخل خارج أوقات الدوام الرسمي', amount: 18500, riskLevel: 'متوسط', reason: 'تم ترحيل القيد المحاسبي في الساعة ٢:٣٠ صباحاً يوم جمعة بواسطة مستخدم فرعي' },
+    { id: 103, entryNumber: 'JE-2026-7721', riskType: 'تكرار قيد مصروفات لنفس المورد', amount: 1200, riskLevel: 'عالي', reason: 'وجود قيدين بنفس القيمة والبيان خلال أقل من ٢٤ ساعة' }
   ]);
 
   const [realTimeAlerts] = useState<RealTimeAlert[]>([
@@ -202,10 +215,10 @@ export default function App() {
     }
   };
 
-  const currentStandard = ifrsStandardsData[selectedStandard] || ifrsStandardsData['IAS16'];
+  const currentStandard = ifrsStandardsData[selectedStandard] || ifrsStandardsData['IAS 16'];
 
   const handleTestConnection = () => {
-    setConnectionStatus('جاري الاتصال...');
+    setConnectionStatus('جاري الاتصال ...');
     setTimeout(() => {
       setConnectionStatus('متصل بنجاح (Active)');
     }, 1200);
@@ -215,11 +228,11 @@ export default function App() {
     setAdjustmentEntries(prev =>
       prev.map(entry => entry.id === id ? { ...entry, status: 'تم الترحيل للـ ERP' } : entry)
     );
-    alert(`تم ترحيل قيد التسوية رقم (${id}) بنجاح إلى نظام الـ ERP المستهدف (${selectedErpSystem}) عبر الـ API.`);
+    alert(`تم ترحيل قيد التسوية رقم (${id}) بنجاح إلى نظام الـ ERP المستهدف (${selectedErpSystem}) عبر الـ API`);
   };
 
   const handleRequestAudit = (auditorName: string) => {
-    alert(`تم إرسال طلب مراجعة وتدقيق عن بعد بنجاح إلى المدقق (${auditorName}) عبر SAEIS Marketplace.`);
+    alert(`تم إرسال طلب مراجعة وتدقيق عن بعد بنجاح إلى المدقق ${auditorName} عبر SAEIS Marketplace.`);
   };
 
   const handleExportPDF = () => {
@@ -254,8 +267,8 @@ export default function App() {
         </div>
         <div class="box">
           <h3>ملخص الحالة المالية والرقابية</h3>
-          <p><strong>مؤشر الامتثال لـ IFRS:</strong> ${auditData ? auditData.complianceRate + '%' : '99.95%'}</p>
-          <p><strong>عدد الحسابات المفحوصة:</strong> ${auditData ? (auditData.totalAccounts || auditData.totalRows || 2000) : '2,000'}</p>
+          <p><strong>مؤشر الامتثال لـ IFRS :</strong> ${auditData ? auditData.complianceRate + '%' : '99.95%'}</p>
+          <p><strong>عدد الحسابات المفحوصة :</strong> ${auditData ? (auditData.totalAccounts || auditData.totalRows || 2000) : '2,000'}</p>
         </div>
         <h3>قائمة مكاتب التدقيق المستقلة المتاحة للربط عن بعد</h3>
         <table>
@@ -300,22 +313,39 @@ export default function App() {
     setTimeout(() => {
       let aiReply = '';
       const query = userText.toLowerCase();
-      if (query.includes('مدقق') || query.includes('market') || query.includes('مكاتب') || query.includes('سوق')) {
+      if (query.includes('market') || query.includes('مكاتب') || query.includes('مدقق')) {
         const availableCount = auditorsList.filter(a => a.status === 'متاح الآن').length;
-        aiReply = `لدينا ${availableCount} مكاتب تدقيق مستقلة ومتاحة حالياً. يمكنك تصفحهم وطلب الخدمة من تبويب (سوق المدققين للمراجعة عن بعد).`;
+        aiReply = `لدينا ${availableCount} مكاتب تدقيق مستقلة ومتاحة حالياً. يمكنك تصفحهم وطلب الخدمة من تبويب سوق المدققين للمراجعة عن بعد.`;
       } else if (query.includes('ملف') || query.includes('حساب') || query.includes('صفوف') || query.includes('امتثال')) {
         if (auditData) {
           aiReply = `الملف المرفوع حالياً هو ${auditData.fileName || selectedFileName} ويحتوي على ${auditData.totalAccounts || auditData.totalRows || 2000} صفاً حقيقياً، ونسبة الامتثال للمعايير هي ${auditData.complianceRate}%.`;
         } else {
-          aiReply = `الملف النشط حالياً هو Nova 2000.xlsx بعدد ٢,٠٠٠ صف ونسبة امتثال ٩٩,٩٥%.`;
+          aiReply = 'الملف النشط حالياً هو Nova_2000.xlsx بعدد ٢,٠٠٠ صف ونسبة امتثال ٩٩.٩٥%.';
         }
       } else if (query.includes('سيولة') || query.includes('عجز') || query.includes('تدفقات')) {
-        aiReply = `المحرك التنبؤي للسيولة: هناك توقع بضغط نقدي محتمل في السيولة خلال شهر نوفمبر، يوصى بمراجعة تبويب التدفقات النقدية.`;
+        aiReply = 'المحرك التنبؤي للسيولة: هناك توقع بضغط نقدي محتمل في السيولة خلال شهر نوفمبر، يوصى بمراجعة تبويب التدفقات النقدية.';
       } else {
-        aiReply = `أهلاً بك يا أسامة. يمكنك سؤالي عن بيانات الملف المرفوع، سوق المدققين، التدفقات النقدية التنبؤية، أو الزكاة والضرائب.`;
+        aiReply = 'أهلاً بك يا أسامة. يمكنك سؤالي عن بيانات الملف المرفوع، سوق المدققين، التدفقات النقدية التنبؤية، أو الزكاة والضرائب.';
       }
       setChatHistory(prev => [...prev, { sender: 'ai', text: aiReply }]);
     }, 800);
+  };
+
+  const handleProcessAudit = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('http://localhost:5000/api/v1/audit/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+      console.log('استجابة الباك إند:', result);
+    } catch (error) {
+      console.error('خطأ أثناء إرسال البيانات للباك إند:', error);
+    }
   };
 
   const handleUploadAndAudit = async () => {
@@ -324,9 +354,10 @@ export default function App() {
       alert('يرجى اختيار ملف Excel أولاً');
       return;
     }
+
     const uploadedFile = fileInput.files[0];
-    
-    // قراءة الملف محلياً عبر مكتبة xlsx لمعرفة عدد الصفوف والحسابات بدقة
+    await handleProcessAudit(uploadedFile);
+
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
@@ -335,14 +366,13 @@ export default function App() {
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(sheet);
-        
-        const actualRowCount = jsonData.length; // العدد الحقيقي للسطور (مثل 4001)
-  
+        const actualRowCount = jsonData.length;
+
         const dynamicAuditResult = {
           fileName: uploadedFile.name,
           totalAccounts: actualRowCount,
           totalRows: actualRowCount,
-          complianceRate: 97.8, // أو حساب النسبة ديناميكياً
+          complianceRate: 97.8,
           isBalanced: true,
           varianceAmount: 0,
           debitTotal: 44797349.65,
@@ -351,11 +381,11 @@ export default function App() {
           totalProvisions: 18500,
           totalAssets: 9000000
         };
-  
+
         setAuditData(dynamicAuditResult);
         setSelectedFileName(uploadedFile.name);
         setShowUploadModal(false);
-        alert(`تم بنجاح تحليل ومعالجة ملف (${uploadedFile.name}) بعدد (${actualRowCount.toLocaleString()}) حساب وتحديث كافة الشاشات!`);
+        alert(`تم بنجاح تحليل ومعالجة ملف ${uploadedFile.name} بعدد ${actualRowCount.toLocaleString()} حساب وتحديث كافة الشاشات`);
       } catch (e) {
         console.error(e);
         alert('حدث خطأ أثناء قراءة ملف الـ Excel');
@@ -398,85 +428,217 @@ export default function App() {
         <nav className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800">
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'analytics' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'analytics' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             لوحة التحليلات
           </button>
           <button
             onClick={() => setActiveTab('credit')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'credit' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'credit' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             محرك التقييم الائتماني
           </button>
           <button
             onClick={() => setActiveTab('marketplace')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'marketplace' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'marketplace' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             سوق المدققين
           </button>
           <button
             onClick={() => setActiveTab('cashflow')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'cashflow' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'cashflow' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             التدفقات النقدية
           </button>
           <button
             onClick={() => setActiveTab('alerts')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'alerts' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'alerts' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             التنبيهات الفورية
           </button>
           <button
             onClick={() => setActiveTab('tax_fraud')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'tax_fraud' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'tax_fraud' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             الضرائب والزكاة واكتشاف AI
           </button>
           <button
+            onClick={() => setActiveTab('fraud_room')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'fraud_room' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            غرفة اكتشاف الاحتيال
+          </button>
+          <button
+            onClick={() => setActiveTab('batch_sync')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'batch_sync' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            مركز المزامنة والترحيل ERP
+          </button>
+          <button
+            onClick={() => setActiveTab('sql_hub')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'sql_hub' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            قاعدة بيانات SQL المباشرة
+          </button>
+          <button
+            onClick={() => setActiveTab('sp_hub')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'sp_hub' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            إجراءات SQL المخزنة (Stored Procedures)
+          </button>
+          <button
+            onClick={() => setActiveTab('backup_hub')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'backup_hub' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            النسخ الاحتياطي التلقائي
+          </button>
+          <button
+            onClick={() => setActiveTab('smart_export')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'smart_export' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            التصدير الذكي لـ Excel
+          </button>
+          <button
+            onClick={() => setActiveTab('bank_rec')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'bank_rec' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            المطابقة البنكية الآلية
+          </button>
+          <button
+            onClick={() => setActiveTab('kpi_dashboard')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'kpi_dashboard' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            مؤشرات الأداء المالي
+          </button>
+          <button
+            onClick={() => setActiveTab('kpi_charts')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'kpi_charts' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            تحليل الاتجاهات المالية
+          </button>
+          <button
+            onClick={() => setActiveTab('gov_reports')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'gov_reports' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            تقارير الحوكمة والامتثال
+          </button>
+          <button
+            onClick={() => setActiveTab('fraud_risk')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'fraud_risk' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            مصفوفة مخاطر الاحتيال والتحمل
+          </button>
+          <button
+            onClick={() => setActiveTab('variance_hub')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'variance_hub' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            تحليل التباين والمقارنة المالية
+          </button>
+          <button
             onClick={() => setActiveTab('adjustments')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'adjustments' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'adjustments' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             قيود التسوية الآلية
           </button>
           <button
             onClick={() => setActiveTab('ifrs_engine')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'ifrs_engine' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'ifrs_engine' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             محرك معايير IFRS الشامل
           </button>
           <button
+            onClick={() => setActiveTab('ifrs16')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'ifrs16' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            محرك عقود IFRS 16
+          </button>
+          <button
             onClick={() => setActiveTab('correction')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'correction' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'correction' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             محرك التصحيح
           </button>
           <button
             onClick={() => setActiveTab('ifrs')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'ifrs' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'ifrs' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             قواعد الفحص
           </button>
           <button
             onClick={() => setActiveTab('sql')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'sql' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'sql' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             استعلامات SQL
           </button>
           <button
             onClick={() => setActiveTab('simulator')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'simulator' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'simulator' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             محاكي السيناريوهات
           </button>
           <button
             onClick={() => setActiveTab('erp')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'erp' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'erp' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             الربط المباشر ERP
           </button>
           <button
             onClick={() => setActiveTab('cfo')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'cfo' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              activeTab === 'cfo' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
           >
             المستشار الذكي CFO AI
           </button>
@@ -487,6 +649,19 @@ export default function App() {
           {activeTab === 'analytics' && <AuditAnalytics />}
           {activeTab === 'credit' && <CreditScoringComponent />}
           {activeTab === 'correction' && <CorrectionEngine />}
+          {activeTab === 'ifrs16' && <LeaseEngineIFRS16 />}
+          {activeTab === 'fraud_room' && <FraudDetectionDashboard />}
+          {activeTab === 'batch_sync' && <BatchErpSyncHub />}
+          {activeTab === 'sql_hub' && <SqlConnectorHub />}
+          {activeTab === 'sp_hub' && <IfrsStoredProceduresHub />}
+          {activeTab === 'backup_hub' && <AutomatedBackupHub />}
+          {activeTab === 'smart_export' && <SmartExportHub />}
+          {activeTab === 'bank_rec' && <BankReconciliationHub />}
+          {activeTab === 'kpi_dashboard' && <KpiDashboardHub />}
+          {activeTab === 'kpi_charts' && <KpiChartsHub />}
+          {activeTab === 'gov_reports' && <GovernanceReportsHub />}
+          {activeTab === 'fraud_risk' && <FraudRiskMatrixHub />}
+          {activeTab === 'variance_hub' && <VarianceAnalysisHub />}
           {activeTab === 'cfo' && <CfoAdvisorView auditData={auditData} />}
         </main>
 
@@ -508,7 +683,9 @@ export default function App() {
                   <div className="flex flex-col gap-2">
                     <div className="flex justify-between items-start">
                       <span className="text-xs font-extrabold text-white">{auditor.name}</span>
-                      <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold ${auditor.status === 'متاح الآن' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
+                      <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold ${
+                        auditor.status === 'متاح الآن' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                      }`}>
                         {auditor.status}
                       </span>
                     </div>
@@ -523,7 +700,9 @@ export default function App() {
                     <button
                       onClick={() => handleRequestAudit(auditor.name)}
                       disabled={auditor.status === 'مشغول حالياً'}
-                      className={`w-full py-2 rounded-xl text-xs font-bold transition shadow ${auditor.status === 'متاح الآن' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
+                      className={`w-full py-2 rounded-xl text-xs font-bold transition shadow ${
+                        auditor.status === 'متاح الآن' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                      }`}
                     >
                       طلب مراجعة عن بعد
                     </button>
@@ -584,11 +763,15 @@ export default function App() {
                           <td className="p-3 border border-slate-800 font-bold text-white">{item.month}</td>
                           <td className="p-3 border border-slate-800 text-emerald-400 font-mono">${item.receivables.toLocaleString()}</td>
                           <td className="p-3 border border-slate-800 text-rose-400 font-mono">${item.payables.toLocaleString()}</td>
-                          <td className={`p-3 border border-slate-800 font-mono font-bold ${item.netCashFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          <td className={`p-3 border border-slate-800 font-mono font-bold ${
+                            item.netCashFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                          }`}>
                             ${item.netCashFlow.toLocaleString()}
                           </td>
                           <td className="p-3 border border-slate-800 text-center">
-                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${item.status === 'آمن' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
+                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                              item.status === 'آمن' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                            }`}>
                               {item.status}
                             </span>
                           </td>
@@ -617,7 +800,7 @@ export default function App() {
             <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
               <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                 <h3 className="text-xs font-bold text-slate-200">التنبيهات الفورية ورصد المخاطر</h3>
-                <span className="text-[11px] text-slate-400">إجمالي التنبيهات: <b className="text-amber-400">{realTimeAlerts.length} تنبيه</b></span>
+                <span className="text-[11px] text-slate-400">إجمالي التنبيهات: <b className="text-amber-400">{realTimeAlerts.length}</b> تنبيه</span>
               </div>
               <div className="flex flex-col gap-3">
                 {realTimeAlerts.map(alert => (
@@ -628,7 +811,9 @@ export default function App() {
                         <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">{alert.standard}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${alert.severity === 'حرج' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : alert.severity === 'تحذير' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}>
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                          alert.severity === 'حرج' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : alert.severity === 'تحذير' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        }`}>
                           {alert.severity}
                         </span>
                         <span className="text-[10px] text-slate-400">{alert.timestamp}</span>
@@ -695,7 +880,9 @@ export default function App() {
                     <div key={item.id} className="bg-slate-900/80 border border-slate-800 p-3 rounded-xl flex flex-col gap-1.5">
                       <div className="flex justify-between items-center">
                         <span className="text-[11px] font-bold text-rose-400">{item.riskType}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${item.riskLevel === 'عالي' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                          item.riskLevel === 'عالي' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        }`}>
                           خطورة: {item.riskLevel}
                         </span>
                       </div>
@@ -780,7 +967,7 @@ export default function App() {
                 <h2 className="text-sm font-bold text-amber-400 mb-1">محرك الامتثال المحاسبي المعياري الشامل (Comprehensive IFRS & IAS Engine)</h2>
                 <p className="text-xs text-slate-400">إدارة وفحص المعايير وقواعد التدقيق المالي الدولية وربطها التلقائي بـ SQL Views.</p>
               </div>
-              <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                 المحرك المعياري نشط
               </span>
             </div>
@@ -791,7 +978,9 @@ export default function App() {
                   <button
                     key={key}
                     onClick={() => setSelectedStandard(key)}
-                    className={`p-3 rounded-xl text-right transition flex flex-col gap-1 border ${selectedStandard === key ? 'bg-amber-600/20 border-amber-500 text-amber-300 shadow-md' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'}`}
+                    className={`p-3 rounded-xl text-right transition flex flex-col gap-1 border ${
+                      selectedStandard === key ? 'bg-amber-600/20 border-amber-500 text-amber-300 shadow-md' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+                    }`}
                   >
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-extrabold">{standard.code}</span>
@@ -898,7 +1087,7 @@ export default function App() {
                       <span className="text-lg font-bold text-amber-400">${Number(adjustedNetProfit).toLocaleString()}</span>
                     </div>
                     <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                      <span className="text-[11px] text-slate-400 block mb-1">الوعاء الزكوي المقدر / الضريبة</span>
+                      <span className="text-[11px] text-slate-400 block mb-1">الوعاء الزكوي / الضريبة المقدرة</span>
                       <span className="text-lg font-bold text-rose-400">${Number(calculatedZakat).toLocaleString()}</span>
                     </div>
                     <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
@@ -916,7 +1105,7 @@ export default function App() {
           </div>
         )}
 
-        {/* الربط المباشر مع الحماية والتشفير ERP */}
+        {/* الربط المباشر مع ERP والحماية والتشفير */}
         {activeTab === 'erp' && (
           <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
             <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
@@ -925,7 +1114,7 @@ export default function App() {
                 <p className="text-xs text-slate-400">ربط مشفر آمن لتصدير قيود التسوية واستيراد البيانات عبر الـ API مع تشفير التوكن (Bearer Token Encryption).</p>
               </div>
               <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                اتصال مشفر AES-256
+                اتصال مشفر 256-AES
               </span>
             </div>
             <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-6">
@@ -961,7 +1150,7 @@ export default function App() {
                       type={showApiKey ? "text" : "password"}
                       value={apikey}
                       onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="••••••••••••••••••••"
+                      placeholder="........................"
                       className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-amber-400 focus:outline-none focus:border-amber-500 font-mono tracking-widest pl-10"
                     />
                     <button
@@ -970,7 +1159,7 @@ export default function App() {
                       className="absolute left-3 text-slate-400 hover:text-white text-xs transition"
                       title={showApiKey ? "إخفاء المفتاح" : "إظهار المفتاح"}
                     >
-                      {showApiKey ? "🙈" : "👁️"}
+                      {showApiKey ? "👁️" : "🔒"}
                     </button>
                   </div>
                 </div>
@@ -978,7 +1167,9 @@ export default function App() {
               <div className="flex justify-between items-center pt-4 border-t border-slate-800">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-400">حالة التشفير والربط:</span>
-                  <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${connectionStatus.includes('متصل') ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
+                  <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${
+                    connectionStatus.includes('متصل') ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                  }`}>
                     {connectionStatus}
                   </span>
                 </div>
@@ -998,7 +1189,7 @@ export default function App() {
           <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
             <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
               <div>
-                <h2 className="text-sm font-bold text-amber-400 mb-1">المستشار المالي الذكي (CFO Advisor & Assistant Engine)</h2>
+                <h2 className="text-sm font-bold text-amber-400 mb-1">المستشار المالي الذكي (CFO) Advisor & Assistant Engine</h2>
                 <p className="text-xs text-slate-400">مساعدك الذكي للإجابة عن الاستفسارات المحاسبية وتدقيق الـ ERP وتدقيق التوصيات المالية وفق IFRS.</p>
               </div>
               <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
@@ -1035,7 +1226,9 @@ export default function App() {
               <div className="flex-1 overflow-y-auto flex flex-col gap-3 pr-2">
                 {chatHistory.map((msg, idx) => (
                   <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-start' : 'justify-end'}`}>
-                    <div className={`max-w-[75%] p-3.5 rounded-2xl text-xs leading-relaxed font-mono ${msg.sender === 'user' ? 'bg-slate-900 text-slate-200 border border-slate-800' : 'bg-amber-600 text-white font-medium shadow-md'}`}>
+                    <div className={`max-w-[75%] p-3.5 rounded-2xl text-xs leading-relaxed font-mono ${
+                      msg.sender === 'user' ? 'bg-slate-900 text-slate-200 border border-slate-800' : 'bg-amber-600 text-white font-medium shadow-md'
+                    }`}>
                       {msg.text}
                     </div>
                   </div>
@@ -1046,7 +1239,7 @@ export default function App() {
                   type="text"
                   value={chatMessage}
                   onChange={(e) => setChatMessage(e.target.value)}
-                  placeholder="اسأل المستشار الذكي عن سوق المدققين، أو الملف المرفوع، أو التدفقات النقدية..."
+                  placeholder="اسأل المستشار الذكي عن سوق المدققين، أو الملف المرفوع، أو التدفقات النقدية ..."
                   className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
                 />
                 <button
@@ -1059,6 +1252,10 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* الشاشات الإضافية المدمجة */}
+        {activeTab === 'fraud_risk' && <FraudRiskMatrixHub />}
+        {activeTab === 'variance_hub' && <VarianceAnalysisHub />}
 
         {/* نافذة رفع ملف البيانات المنبثقة */}
         {showUploadModal && (
@@ -1075,7 +1272,7 @@ export default function App() {
                 <p className="text-[11px] text-slate-400 mt-0.5">اختر نظام ERP الأصلي وقم برفع ملف ميزان المراجعة أو القيود</p>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-slate-300">اختر نظام ERP الأصلي</label>
+                <label className="text-xs text-slate-300">اختر نظام ERP الأصلى</label>
                 <select
                   value={modalErpSystem}
                   onChange={(e) => setModalErpSystem(e.target.value)}
