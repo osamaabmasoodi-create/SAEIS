@@ -12,7 +12,7 @@ interface VarianceItem {
 }
 
 export default function VarianceAnalysisHub() {
-  const [items, setItems] = useState<VarianceItem[]>([
+  const [items] = useState<VarianceItem[]>([
     {
       id: 1,
       accountName: 'إيرادات المبيعات الرئيسية',
@@ -55,6 +55,8 @@ export default function VarianceAnalysisHub() {
     }
   ]);
 
+  const significantCount = items.filter(i => i.significance === 'جوهرى ومهم').length;
+
   return (
     <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
       {/* رأس اللوحة */}
@@ -64,7 +66,7 @@ export default function VarianceAnalysisHub() {
             لوحة تحليل التباين والمقارنة المالية بين الفترات (Period-over-Period Variance Hub)
           </h2>
           <p className="text-xs text-slate-400">
-            رصد الانحرافات النسبية والنقدية وتحديد البنود الجوهرية المتوافقة مع متطلبات الإفصاح المعياري.
+            رصد الانحرافات النسبية والنقدية وتحديد البنود الجوهرية المتوافقة مع متطلبات الإفصاح المعياري IFRS 18.
           </p>
         </div>
         <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
@@ -124,6 +126,30 @@ export default function VarianceAnalysisHub() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* قسم التقرير التفسيري الذكي التلقائي */}
+      <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
+        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+          <h3 className="text-xs font-bold text-amber-400">
+            التقرير التفسيري الذكي للانحرافات الجوهرية (Executive Variance Commentary)
+          </h3>
+          <span className="text-[11px] text-slate-400">
+            تم رصد <b className="text-amber-400">{significantCount}</b> انحرافات تتطلب إفصاحاً معيارياً
+          </span>
+        </div>
+
+        <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col gap-3 text-xs leading-relaxed text-slate-300">
+          <p>
+            • <strong className="text-emerald-400">ارتفاع الإيرادات الرئيسية بنسبة 25%:</strong> يرجع هذا النمو إلى زيادة المبيعات في الفترة الحالية بمبلغ 300,000$، مما ينعكس إيجاباً على الأداء التشغيلي.
+          </p>
+          <p>
+            • <strong className="text-amber-400">ارتفاع تكلفة البضاعة المباعة بنسبة 21.4%:</strong> الزيادة متناسبة طردياً مع ارتفاع الإيرادات، مما يشير إلى ثبات هامش الربح الإجمالي تقريباً.
+          </p>
+          <p>
+            • <strong className="text-rose-400">ارتفاع غير عادي في مصروفات الصيانة والإصلاح (60%):</strong> يتطلب هذا البند مراجعة مستندية من التدقيق الداخلي للتأكد من عدم وجود مصاريف رأسمالية مدرجة خطأ كمصروفات تشغيلية وفق معيار IAS 16.
+          </p>
         </div>
       </div>
     </div>
