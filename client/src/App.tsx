@@ -302,33 +302,6 @@ export default function App() {
     }, 500);
   };
 
-  const handleSendChat = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatMessage.trim()) return;
-    const userText = chatMessage;
-    setChatHistory(prev => [...prev, { sender: 'user', text: userText }]);
-    setChatMessage('');
-    setTimeout(() => {
-      let aiReply = '';
-      const query = userText.toLowerCase();
-      if (query.includes('market') || query.includes('مكاتب') || query.includes('مدقق')) {
-        const availableCount = auditorsList.filter(a => a.status === 'متاح الآن').length;
-        aiReply = `لدينا ${availableCount} مكاتب تدقيق مستقلة ومتاحة حالياً. يمكنك تصفحهم وطلب الخدمة من تبويب سوق المدققين للمراجعة عن بعد.`;
-      } else if (query.includes('ملف') || query.includes('حساب') || query.includes('صفوف') || query.includes('امتثال')) {
-        if (auditData) {
-          aiReply = `الملف المرفوع حالياً هو ${auditData.fileName || selectedFileName} ويحتوي على ${auditData.totalAccounts || auditData.totalRows || 2000} صفاً حقيقياً، ونسبة الامتثال للمعايير هي ${auditData.complianceRate}%.`;
-        } else {
-          aiReply = 'الملف النشط حالياً هو Nova_2000.xlsx بعدد ٢,٠٠٠ صف ونسبة امتثال ٩٩.٩٥٪.';
-        }
-      } else if (query.includes('سيولة') || query.includes('عجز') || query.includes('تدفقات')) {
-        aiReply = 'المحرك التنبؤي للسيولة: هناك توقع بضغط نقدي محتمل في السيولة خلال شهر نوفمبر، يوصى بمراجعة تبويب التدفقات النقدية.';
-      } else {
-        aiReply = 'أهلاً بك يا أسامة. يمكنك سؤالي عن بيانات الملف المرفوع، سوق المدققين، التدفقات النقدية التنبؤية، أو الزكاة والضرائب.';
-      }
-      setChatHistory(prev => [...prev, { sender: 'ai', text: aiReply }]);
-    }, 800);
-  };
-
   const handleProcessAudit = async (file: File) => {
     try {
       const formData = new FormData();
@@ -502,7 +475,7 @@ export default function App() {
           </button>
         </nav>
 
-        {/* العرض الفرعي للشاشة النشطة */}
+        {/* العرض الفرعي للشاشة النشطة (يحتوي على CfoAdvisorView مرة واحدة فقط) */}
         <main className="flex-1">
           {activeTab === 'analytics' && <AuditAnalytics />}
           {activeTab === 'credit' && <CreditScoringComponent />}
@@ -521,109 +494,269 @@ export default function App() {
           {activeTab === 'fraud_risk' && <FraudRiskMatrixHub />}
           {activeTab === 'variance_hub' && <VarianceAnalysisHub />}
           {activeTab === 'cfo' && <CfoAdvisorView auditData={auditData} />}
-        </main>
-
-        {/* شاشة سوق المدققين المستقلين */}
-        {activeTab === 'marketplace' && (
-          <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
-            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
-              <div>
-                <h2 className="text-sm font-bold text-amber-400 mb-1">سوق المدققين المستقلين (Auditors Marketplace)</h2>
-                <p className="text-xs text-slate-400">ربط مباشر بين الشركات ومكاتب المحاسبة المعتمدة لمراجعة السجلات والتقارير عن بعد عبر المنصة</p>
+          {activeTab === 'marketplace' && (
+            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
+                <div>
+                  <h2 className="text-sm font-bold text-amber-400 mb-1">سوق المدققين المستقلين (Auditors Marketplace)</h2>
+                  <p className="text-xs text-slate-400">ربط مباشر بين الشركات ومكاتب المحاسبة المعتمدة لمراجعة السجلات والتقارير عن بعد عبر المنصة</p>
+                </div>
+                <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  السوق متصل ومعتمد
+                </span>
               </div>
-              <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                السوق متصل ومعتمد
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {auditorsList.map(auditor => (
-                <div key={auditor.id} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between gap-4">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex justify-between items-start">
-                      <span className="text-xs font-extrabold text-white">{auditor.name}</span>
-                      <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold ${auditor.status === 'متاح الآن' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
-                        {auditor.status}
-                      </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {auditorsList.map(auditor => (
+                  <div key={auditor.id} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between gap-4">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-extrabold text-white">{auditor.name}</span>
+                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold ${auditor.status === 'متاح الآن' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
+                          {auditor.status}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-amber-400">{auditor.firm}</span>
+                      <p className="text-[10px] text-slate-400 mt-1">التخصص: {auditor.specialty}</p>
                     </div>
-                    <span className="text-[11px] text-amber-400">{auditor.firm}</span>
-                    <p className="text-[10px] text-slate-400 mt-1">التخصص: {auditor.specialty}</p>
-                  </div>
-                  <div className="flex flex-col gap-3 pt-3 border-t border-slate-800">
-                    <div className="flex justify-between items-center text-[11px] text-slate-300">
-                      <span>التقييم: <b className="text-amber-300">{auditor.rating}</b></span>
-                      <span>المهام: <b className="text-white">{auditor.completedAudits}</b></span>
+                    <div className="flex flex-col gap-3 pt-3 border-t border-slate-800">
+                      <div className="flex justify-between items-center text-[11px] text-slate-300">
+                        <span>التقييم: <b className="text-amber-300">{auditor.rating}</b></span>
+                        <span>المهام: <b className="text-white">{auditor.completedAudits}</b></span>
+                      </div>
+                      <button
+                        onClick={() => handleRequestAudit(auditor.name)}
+                        disabled={auditor.status === 'مشغول حالياً'}
+                        className={`w-full py-2 rounded-xl text-xs font-bold transition shadow ${auditor.status === 'متاح الآن' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
+                      >
+                        طلب مراجعة عن بعد
+                      </button>
                     </div>
-                    <button
-                      onClick={() => handleRequestAudit(auditor.name)}
-                      disabled={auditor.status === 'مشغول حالياً'}
-                      className={`w-full py-2 rounded-xl text-xs font-bold transition shadow ${auditor.status === 'متاح الآن' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
-                    >
-                      طلب مراجعة عن بعد
-                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {activeTab === 'cashflow' && (
+            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
+                <div>
+                  <h2 className="text-sm font-bold text-amber-400 mb-1">المحرك التنبؤي للتدفقات النقدية (Predictive Cash Flow Auditing)</h2>
+                  <p className="text-xs text-slate-400">تحليل الذمم الدائنة والمدينة المستخرجة من الـ ERP للتنبؤ بالسيولة والعجز النقدي المستقبلي</p>
+                </div>
+                <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  النماذج التنبؤية نشطة
+                </span>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <div className="lg:col-span-1 bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
+                  <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">متغيرات التنبؤ والتحصيل</h3>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] text-slate-400">معدل تأخر التحصيل المقدر (يوم):</label>
+                    <input
+                      type="number"
+                      value={collectionDelayDays}
+                      onChange={(e) => setCollectionDelayDays(Number(e.target.value))}
+                      className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500 mt-2"
+                    />
+                  </div>
+                  <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col gap-2">
+                    <span className="text-[11px] text-slate-400">توصية الذكاء الاصطناعي</span>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      تظهر التحليلات ضغطاً متوقعاً في السيولة خلال شهر نوفمبر، يوصى بتسريع إجراءات المطالبات قبل نهاية الشهر بسبب تأخر تحصيل العملاء.
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* شاشة التدفقات النقدية */}
-        {activeTab === 'cashflow' && (
-          <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
-            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
-              <div>
-                <h2 className="text-sm font-bold text-amber-400 mb-1">المحرك التنبؤي للتدفقات النقدية (Predictive Cash Flow Auditing)</h2>
-                <p className="text-xs text-slate-400">تحليل الذمم الدائنة والمدينة المستخرجة من الـ ERP للتنبؤ بالسيولة والعجز النقدي المستقبلي</p>
-              </div>
-              <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                النماذج التنبؤية نشطة
-              </span>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              <div className="lg:col-span-1 bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
-                <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">متغيرات التنبؤ والتحصيل</h3>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] text-slate-400">معدل تأخر التحصيل المقدر (يوم):</label>
-                  <input
-                    type="number"
-                    value={collectionDelayDays}
-                    onChange={(e) => setCollectionDelayDays(Number(e.target.value))}
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500 mt-2"
-                  />
-                </div>
-                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col gap-2">
-                  <span className="text-[11px] text-slate-400">توصية الذكاء الاصطناعي</span>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">
-                    تظهر التحليلات ضغطاً متوقعاً في السيولة خلال شهر نوفمبر، يوصى بتسريع إجراءات المطالبات قبل نهاية الشهر بسبب تأخر تحصيل العملاء.
-                  </p>
+                <div className="lg:col-span-2 bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
+                  <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">توقعات التدفقات النقدية للأشهر القادمة</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-slate-900 text-slate-300 text-[11px]">
+                          <th className="p-3 text-right border border-slate-800">الشهر</th>
+                          <th className="p-3 text-right border border-slate-800">المقبوضات (الذمم المدينة)</th>
+                          <th className="p-3 text-right border border-slate-800">المدفوعات (الذمم الدائنة)</th>
+                          <th className="p-3 text-right border border-slate-800">صافي التدفق</th>
+                          <th className="p-3 text-center border border-slate-800">الحالة</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-xs text-slate-200">
+                        {cashFlowForecast.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-slate-900/50 transition">
+                            <td className="p-3 border border-slate-800 font-bold text-white">{item.month}</td>
+                            <td className="p-3 border border-slate-800 text-emerald-400 font-mono">${item.receivables.toLocaleString()}</td>
+                            <td className="p-3 border border-slate-800 text-rose-400 font-mono">${item.payables.toLocaleString()}</td>
+                            <td className={`p-3 border border-slate-800 font-mono font-bold ${item.netCashFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              ${item.netCashFlow.toLocaleString()}
+                            </td>
+                            <td className="p-3 border border-slate-800 text-center">
+                              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${item.status === 'آمن' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
+                                {item.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-              <div className="lg:col-span-2 bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
-                <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">توقعات التدفقات النقدية للأشهر القادمة</h3>
+            </div>
+          )}
+          {activeTab === 'alerts' && (
+            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
+                <div>
+                  <h2 className="text-sm font-bold text-amber-400 mb-1">مركز التنبيهات الذكية الفورية (Smart Real-Time Alerts Center)</h2>
+                  <p className="text-xs text-slate-400">إشعارات لحظية تظهر أي مخالفة معيارية أو قيد مشبوه فور رفع الملف أو مراجعته مع الـ ERP.</p>
+                </div>
+                <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  الرقابة الحية نشطة
+                </span>
+              </div>
+              <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                  <h3 className="text-xs font-bold text-slate-200">التنبيهات الفورية ورصد المخاطر</h3>
+                  <span className="text-[11px] text-slate-400">إجمالي التنبيهات: <b className="text-amber-400">{realTimeAlerts.length}</b> تنبيه</span>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {realTimeAlerts.map(alert => (
+                    <div key={alert.id} className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl flex flex-col gap-2">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-extrabold text-white">{alert.title}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">{alert.standard}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${alert.severity === 'حرج' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : alert.severity === 'تحذير' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}>
+                            {alert.severity}
+                          </span>
+                          <span className="text-[10px] text-slate-400">{alert.timestamp}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed">{alert.message}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          {activeTab === 'tax_fraud' && (
+            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
+                <div>
+                  <h2 className="text-sm font-bold text-amber-400 mb-1">محرك تدقيق الضرائب والزكاة واكتشاف الشذوذ والاحتيال (Zakat, Tax & Fraud ML Engine)</h2>
+                  <p className="text-xs text-slate-400">حساب الوعاء الزكوي والضريبي آلياً واكتشاف القيود المشبوهة وتجزئة الفواتير عبر النماذج الذكية.</p>
+                </div>
+                <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  الحماية والتدقيق نشط
+                </span>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
+                  <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">حماية وتدقيق الضرائب والزكاة</h3>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] text-slate-400">نسبة الزكاة الشرعية (%):</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={zakatRate}
+                      onChange={(e) => setZakatRate(Number(e.target.value))}
+                      className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] text-slate-400">نسبة ضريبة القيمة المضافة (%):</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={vatRate}
+                      onChange={(e) => setVatRate(Number(e.target.value))}
+                      className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                      <span className="text-[10px] text-slate-400 block mb-1">الوعاء الزكوي المقدر</span>
+                      <span className="text-base font-bold text-amber-400">${Number(calculatedZakat).toLocaleString()}</span>
+                    </div>
+                    <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                      <span className="text-[10px] text-slate-400 block mb-1">ضريبة القيمة المضافة المقدرة</span>
+                      <span className="text-base font-bold text-blue-400">${Number(calculatedVat).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
+                  <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">نماذج اكتشاف الاحتيال والشذوذ (Anomaly ML)</h3>
+                  <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto">
+                    {fraudAnomalies.map(item => (
+                      <div key={item.id} className="bg-slate-900/80 border border-slate-800 p-3 rounded-xl flex flex-col gap-1.5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[11px] font-bold text-rose-400">{item.riskType}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${item.riskLevel === 'عالي' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
+                            خطورة: {item.riskLevel}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px] text-slate-300">
+                          <span>رقم القيد: <b className="font-mono text-amber-300">{item.entryNumber}</b></span>
+                          <span>المبلغ: <b className="font-mono text-white">${item.amount.toLocaleString()}</b></span>
+                        </div>
+                        <p className="text-[10px] text-slate-400">{item.reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {activeTab === 'adjustments' && (
+            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
+                <div>
+                  <h2 className="text-sm font-bold text-amber-400 mb-1">محرك قيود التسوية والتصحيح الآلي (Automated Adjustment Entries Engine)</h2>
+                  <p className="text-xs text-slate-400">توليد قيود المعالجة وفق الـ IFRS وترحيلها لحظياً لنظام الـ ERP المحاسبي المعتمد عبر الـ API.</p>
+                </div>
+                <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  جاهز للترحيل السحابي
+                </span>
+              </div>
+              <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-5">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                  <h3 className="text-xs font-bold text-slate-200">القيود المقترحة بناء على نتائج الفحص المعياري الأخير</h3>
+                  <span className="text-[11px] text-slate-400">نظام ERP المحدد: <b className="text-amber-400">{selectedErpSystem}</b></span>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="bg-slate-900 text-slate-300 text-[11px]">
-                        <th className="p-3 text-right border border-slate-800">الشهر</th>
-                        <th className="p-3 text-right border border-slate-800">المقبوضات (الذمم المدينة)</th>
-                        <th className="p-3 text-right border border-slate-800">المدفوعات (الذمم الدائنة)</th>
-                        <th className="p-3 text-right border border-slate-800">صافي التدفق</th>
-                        <th className="p-3 text-center border border-slate-800">الحالة</th>
+                        <th className="p-3 text-right border border-slate-800">المعيار</th>
+                        <th className="p-3 text-right border border-slate-800">بيان القيد والتسوية المحاسبية</th>
+                        <th className="p-3 text-right border border-slate-800">الطرف المدين</th>
+                        <th className="p-3 text-right border border-slate-800">الطرف الدائن</th>
+                        <th className="p-3 text-right border border-slate-800">المبلغ</th>
+                        <th className="p-3 text-center border border-slate-800">الحالة والإجراء</th>
                       </tr>
                     </thead>
                     <tbody className="text-xs text-slate-200">
-                      {cashFlowForecast.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-slate-900/50 transition">
-                          <td className="p-3 border border-slate-800 font-bold text-white">{item.month}</td>
-                          <td className="p-3 border border-slate-800 text-emerald-400 font-mono">${item.receivables.toLocaleString()}</td>
-                          <td className="p-3 border border-slate-800 text-rose-400 font-mono">${item.payables.toLocaleString()}</td>
-                          <td className={`p-3 border border-slate-800 font-mono font-bold ${item.netCashFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            ${item.netCashFlow.toLocaleString()}
-                          </td>
+                      {adjustmentEntries.map((entry) => (
+                        <tr key={entry.id} className="hover:bg-slate-900/50 transition">
+                          <td className="p-3 border border-slate-800 font-bold text-amber-400">{entry.standard}</td>
+                          <td className="p-3 border border-slate-800">{entry.description}</td>
+                          <td className="p-3 border border-slate-800 text-emerald-400">{entry.debitAccount}</td>
+                          <td className="p-3 border border-slate-800 text-rose-400">{entry.creditAccount}</td>
+                          <td className="p-3 border border-slate-800 font-mono font-bold">${entry.amount.toLocaleString()}</td>
                           <td className="p-3 border border-slate-800 text-center">
-                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${item.status === 'آمن' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
-                              {item.status}
-                            </span>
+                            {entry.status === 'معلق' ? (
+                              <button
+                                onClick={() => handlePushToErp(entry.id)}
+                                className="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold transition shadow"
+                              >
+                                ترحيل للـ ERP
+                              </button>
+                            ) : (
+                              <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold">
+                                تم الترحيل للـ
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -632,468 +765,224 @@ export default function App() {
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* شاشة التنبيهات الفورية */}
-        {activeTab === 'alerts' && (
-          <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
-            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
-              <div>
-                <h2 className="text-sm font-bold text-amber-400 mb-1">مركز التنبيهات الذكية الفورية (Smart Real-Time Alerts Center)</h2>
-                <p className="text-xs text-slate-400">إشعارات لحظية تظهر أي مخالفة معيارية أو قيد مشبوه فور رفع الملف أو مراجعته مع الـ ERP.</p>
-              </div>
-              <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                الرقابة الحية نشطة
-              </span>
-            </div>
-            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 className="text-xs font-bold text-slate-200">التنبيهات الفورية ورصد المخاطر</h3>
-                <span className="text-[11px] text-slate-400">إجمالي التنبيهات: <b className="text-amber-400">{realTimeAlerts.length}</b> تنبيه</span>
-              </div>
-              <div className="flex flex-col gap-3">
-                {realTimeAlerts.map(alert => (
-                  <div key={alert.id} className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl flex flex-col gap-2">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-extrabold text-white">{alert.title}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">{alert.standard}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${alert.severity === 'حرج' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : alert.severity === 'تحذير' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}>
-                          {alert.severity}
-                        </span>
-                        <span className="text-[10px] text-slate-400">{alert.timestamp}</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-300 leading-relaxed">{alert.message}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* شاشة الزكاة والضرائب واكتشاف الاحتيال */}
-        {activeTab === 'tax_fraud' && (
-          <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
-            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
-              <div>
-                <h2 className="text-sm font-bold text-amber-400 mb-1">محرك تدقيق الضرائب والزكاة واكتشاف الشذوذ والاحتيال (Zakat, Tax & Fraud ML Engine)</h2>
-                <p className="text-xs text-slate-400">حساب الوعاء الزكوي والضريبي آلياً واكتشاف القيود المشبوهة وتجزئة الفواتير عبر النماذج الذكية.</p>
-              </div>
-              <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                الحماية والتدقيق نشط
-              </span>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
-                <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">حماية وتدقيق الضرائب والزكاة</h3>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] text-slate-400">نسبة الزكاة الشرعية (%):</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={zakatRate}
-                    onChange={(e) => setZakatRate(Number(e.target.value))}
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-                  />
+          )}
+          {activeTab === 'ifrs_engine' && (
+            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
+                <div>
+                  <h2 className="text-sm font-bold text-amber-400 mb-1">محرك الامتثال المحاسبي المعياري الشامل (Comprehensive IFRS & IAS Engine)</h2>
+                  <p className="text-xs text-slate-400">إدارة وفحص المعايير وقواعد التدقيق المالي الدولية وربطها التلقائي بـ SQL Views.</p>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] text-slate-400">نسبة ضريبة القيمة المضافة (%):</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={vatRate}
-                    onChange={(e) => setVatRate(Number(e.target.value))}
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block mb-1">الوعاء الزكوي المقدر</span>
-                    <span className="text-base font-bold text-amber-400">${Number(calculatedZakat).toLocaleString()}</span>
-                  </div>
-                  <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
-                    <span className="text-[10px] text-slate-400 block mb-1">ضريبة القيمة المضافة المقدرة</span>
-                    <span className="text-base font-bold text-blue-400">${Number(calculatedVat).toLocaleString()}</span>
-                  </div>
-                </div>
+                <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  المحرك المعياري نشط
+                </span>
               </div>
-              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
-                <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">نماذج اكتشاف الاحتيال والشذوذ (Anomaly ML)</h3>
-                <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto">
-                  {fraudAnomalies.map(item => (
-                    <div key={item.id} className="bg-slate-900/80 border border-slate-800 p-3 rounded-xl flex flex-col gap-1.5">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <div className="lg:col-span-1 bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-2 max-h-[65vh] overflow-y-auto">
+                  <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2 mb-2">اختر المعيار الدولي للفحص</h3>
+                  {Object.entries(ifrsStandardsData).map(([key, standard]) => (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedStandard(key)}
+                      className={`p-3 rounded-xl text-right transition flex flex-col gap-1 border ${selectedStandard === key ? 'bg-amber-600/20 border-amber-500 text-amber-300 shadow-md' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'}`}
+                    >
                       <div className="flex justify-between items-center">
-                        <span className="text-[11px] font-bold text-rose-400">{item.riskType}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${item.riskLevel === 'عالي' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
-                          خطورة: {item.riskLevel}
-                        </span>
+                        <span className="text-xs font-extrabold">{standard.code}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">{standard.complianceRate}</span>
                       </div>
-                      <div className="flex justify-between items-center text-[11px] text-slate-300">
-                        <span>رقم القيد: <b className="font-mono text-amber-300">{item.entryNumber}</b></span>
-                        <span>المبلغ: <b className="font-mono text-white">${item.amount.toLocaleString()}</b></span>
-                      </div>
-                      <p className="text-[10px] text-slate-400">{item.reason}</p>
-                    </div>
+                      <span className="text-[11px] text-slate-400 truncate">{standard.title}</span>
+                    </button>
                   ))}
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* شاشة قيود التسوية الآلية */}
-        {activeTab === 'adjustments' && (
-          <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
-            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
-              <div>
-                <h2 className="text-sm font-bold text-amber-400 mb-1">محرك قيود التسوية والتصحيح الآلي (Automated Adjustment Entries Engine)</h2>
-                <p className="text-xs text-slate-400">توليد قيود المعالجة وفق الـ IFRS وترحيلها لحظياً لنظام الـ ERP المحاسبي المعتمد عبر الـ API.</p>
-              </div>
-              <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                جاهز للترحيل السحابي
-              </span>
-            </div>
-            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-5">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 className="text-xs font-bold text-slate-200">القيود المقترحة بناء على نتائج الفحص المعياري الأخير</h3>
-                <span className="text-[11px] text-slate-400">نظام ERP المحدد: <b className="text-amber-400">{selectedErpSystem}</b></span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-slate-900 text-slate-300 text-[11px]">
-                      <th className="p-3 text-right border border-slate-800">المعيار</th>
-                      <th className="p-3 text-right border border-slate-800">بيان القيد والتسوية المحاسبية</th>
-                      <th className="p-3 text-right border border-slate-800">الطرف المدين</th>
-                      <th className="p-3 text-right border border-slate-800">الطرف الدائن</th>
-                      <th className="p-3 text-right border border-slate-800">المبلغ</th>
-                      <th className="p-3 text-center border border-slate-800">الحالة والإجراء</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-xs text-slate-200">
-                    {adjustmentEntries.map((entry) => (
-                      <tr key={entry.id} className="hover:bg-slate-900/50 transition">
-                        <td className="p-3 border border-slate-800 font-bold text-amber-400">{entry.standard}</td>
-                        <td className="p-3 border border-slate-800">{entry.description}</td>
-                        <td className="p-3 border border-slate-800 text-emerald-400">{entry.debitAccount}</td>
-                        <td className="p-3 border border-slate-800 text-rose-400">{entry.creditAccount}</td>
-                        <td className="p-3 border border-slate-800 font-mono font-bold">${entry.amount.toLocaleString()}</td>
-                        <td className="p-3 border border-slate-800 text-center">
-                          {entry.status === 'معلق' ? (
-                            <button
-                              onClick={() => handlePushToErp(entry.id)}
-                              className="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold transition shadow"
-                            >
-                              ترحيل للـ ERP
-                            </button>
-                          ) : (
-                            <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold">
-                              تم الترحيل للـ
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* محرك معايير IFRS الشامل */}
-        {activeTab === 'ifrs_engine' && (
-          <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
-            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
-              <div>
-                <h2 className="text-sm font-bold text-amber-400 mb-1">محرك الامتثال المحاسبي المعياري الشامل (Comprehensive IFRS & IAS Engine)</h2>
-                <p className="text-xs text-slate-400">إدارة وفحص المعايير وقواعد التدقيق المالي الدولية وربطها التلقائي بـ SQL Views.</p>
-              </div>
-              <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                المحرك المعياري نشط
-              </span>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              <div className="lg:col-span-1 bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-2 max-h-[65vh] overflow-y-auto">
-                <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2 mb-2">اختر المعيار الدولي للفحص</h3>
-                {Object.entries(ifrsStandardsData).map(([key, standard]) => (
-                  <button
-                    key={key}
-                    onClick={() => setSelectedStandard(key)}
-                    className={`p-3 rounded-xl text-right transition flex flex-col gap-1 border ${selectedStandard === key ? 'bg-amber-600/20 border-amber-500 text-amber-300 shadow-md' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'}`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-extrabold">{standard.code}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">{standard.complianceRate}</span>
-                    </div>
-                    <span className="text-[11px] text-slate-400 truncate">{standard.title}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="lg:col-span-2 bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4 justify-between">
-                <div className="flex flex-col gap-4">
-                  <div className="flex justify-between items-start border-b border-slate-800 pb-3">
-                    <div>
-                      <span className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold">
-                        {currentStandard.category}
+                <div className="lg:col-span-2 bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4 justify-between">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex justify-between items-start border-b border-slate-800 pb-3">
+                      <div>
+                        <span className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold">
+                          {currentStandard.category}
+                        </span>
+                        <h3 className="text-base font-bold text-white mt-2">
+                          {currentStandard.code}: {currentStandard.title}
+                        </h3>
+                      </div>
+                      <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-xl">
+                        {currentStandard.status}
                       </span>
-                      <h3 className="text-base font-bold text-white mt-2">
-                        {currentStandard.code}: {currentStandard.title}
-                      </h3>
                     </div>
-                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-xl">
-                      {currentStandard.status}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <h4 className="text-xs font-bold text-slate-300">وصف المعيار ونطاق المعالجة المحاسبية:</h4>
-                    <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
-                      {currentStandard.description}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <h4 className="text-xs font-bold text-slate-300">استعلام الفحص المرتبط بقاعدة البيانات T-SQL (View):</h4>
-                    <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl font-mono text-[11px] text-amber-400 overflow-x-auto">
-                      {currentStandard.sqlView}
+                    <div className="flex flex-col gap-1.5">
+                      <h4 className="text-xs font-bold text-slate-300">وصف المعيار ونطاق المعالجة المحاسبية:</h4>
+                      <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                        {currentStandard.description}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <h4 className="text-xs font-bold text-slate-300">استعلام الفحص المرتبط بقاعدة البيانات T-SQL (View):</h4>
+                      <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl font-mono text-[11px] text-amber-400 overflow-x-auto">
+                        {currentStandard.sqlView}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-                  <button
-                    onClick={() => alert(`تم تشغيل فحص الامتثال الآلي لهذا المعيار ${currentStandard.code} بنجاح`)}
-                    className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-lg"
-                  >
-                    تشغيل فحص الامتثال الآلي لهذا المعيار
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'ifrs' && <AuditRulesIFRS />}
-        {activeTab === 'sql' && <SqlViewer />}
-
-        {/* محاكي السيناريوهات */}
-        {activeTab === 'simulator' && (
-          <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
-            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
-              <div>
-                <h2 className="text-sm font-bold text-amber-400 mb-1">محاكي السيناريوهات والضغط العالي (Stress & Compliance Simulator)</h2>
-                <p className="text-xs text-slate-400">اختبار تأثير متغيرات المعايير والنسب على صافي الربح والوعاء الزكوي لحظياً.</p>
-              </div>
-              <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                وضع المحاكاة النشطة
-              </span>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
-                <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">متغيرات المحاكاة والفرضيات</h3>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] text-slate-400">مخصص هبوط مخزون IAS 2:</label>
-                  <input
-                    type="number"
-                    value={inventoryProvision}
-                    onChange={(e) => setInventoryProvision(Number(e.target.value))}
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] text-slate-400">نسبة الزكاة / الضريبة الفرضية (%):</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={zakatRate}
-                    onChange={(e) => setZakatRate(Number(e.target.value))}
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] text-slate-400">معدل الخصم لنموذج القيمة الحالية IFRS 16 (%):</label>
-                  <input
-                    type="number"
-                    value={discountRate}
-                    onChange={(e) => setDiscountRate(Number(e.target.value))}
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-              </div>
-              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between">
-                <div>
-                  <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2 mb-4">النتائج المالية بعد المحاكاة</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                      <span className="text-[11px] text-slate-400 block mb-1">صافي الربح المعدل بعد المخصصات</span>
-                      <span className="text-lg font-bold text-amber-400">${Number(adjustedNetProfit).toLocaleString()}</span>
-                    </div>
-                    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                      <span className="text-[11px] text-slate-400 block mb-1">الوعاء الزكوي / الضريبة المقدرة</span>
-                      <span className="text-lg font-bold text-rose-400">${Number(calculatedZakat).toLocaleString()}</span>
-                    </div>
-                    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                      <span className="text-[11px] text-slate-400 block mb-1">صافي الربح النهائي بعد الزكاة</span>
-                      <span className="text-lg font-bold text-emerald-400">${Number(netAfterZakat).toLocaleString()}</span>
-                    </div>
-                    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                      <span className="text-[11px] text-slate-400 block mb-1">معدل العائد على الأصول (ROA) - محاكي</span>
-                      <span className="text-lg font-bold text-blue-400">+{calculatedRoa}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* الربط المباشر مع ERP والحماية والتشفير */}
-        {activeTab === 'erp' && (
-          <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
-            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
-              <div>
-                <h2 className="text-sm font-bold text-amber-400 mb-1">إعدادات الربط المباشر وحماية البيانات (SAEIS Security Gateway)</h2>
-                <p className="text-xs text-slate-400">ربط مشفر آمن لتصدير قيود التسوية واستيراد البيانات عبر الـ API مع تشفير التوكن (Bearer Token Encryption).</p>
-              </div>
-              <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                اتصال مشفر ٢٥٦-AES
-              </span>
-            </div>
-            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-slate-300">نظام ERP المستهدف</label>
-                  <select
-                    value={selectedErpSystem}
-                    onChange={(e) => setSelectedErpSystem(e.target.value)}
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-                  >
-                    <option value="Odoo ERP (REST API)">Odoo ERP</option>
-                    <option value="Onyx Pro (أونكس برو)">Onyx Pro (أونكس برو)</option>
-                    <option value="SAP Business One">SAP Business One</option>
-                  </select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-slate-300">رابط نقطة الاتصال (API Endpoint):</label>
-                  <input
-                    type="text"
-                    value={apiEndpoint}
-                    onChange={(e) => setApiEndpoint(e.target.value)}
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 font-mono"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-slate-300 flex justify-between items-center">
-                    <span>مفتاح المصادقة والتوكن المشفر</span>
-                    <span className="text-[10px] text-emerald-400 font-bold">Encrypted</span>
-                  </label>
-                  <div className="relative flex items-center">
-                    <input
-                      type={showApiKey ? "text" : "password"}
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="••••••••••••••••"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-amber-400 focus:outline-none focus:border-amber-500 font-mono tracking-widest pl-10"
-                    />
+                  <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
                     <button
-                      type="button"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute left-3 text-slate-400 hover:text-white text-xs transition"
-                      title={showApiKey ? "إخفاء المفتاح" : "إظهار المفتاح"}
+                      onClick={() => alert(`تم تشغيل فحص الامتثال الآلي لهذا المعيار ${currentStandard.code} بنجاح`)}
+                      className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-lg"
                     >
-                      {showApiKey ? "👁️" : "🔒"}
+                      تشغيل فحص الامتثال الآلي لهذا المعيار
                     </button>
                   </div>
                 </div>
               </div>
-              <div className="flex justify-between items-center pt-4 border-t border-slate-800">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400">حالة التشفير والربط:</span>
-                  <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${connectionStatus.includes('متصل') ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
-                    {connectionStatus}
-                  </span>
+            </div>
+          )}
+          {activeTab === 'ifrs' && <AuditRulesIFRS />}
+          {activeTab === 'sql' && <SqlViewer />}
+          {activeTab === 'simulator' && (
+            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
+                <div>
+                  <h2 className="text-sm font-bold text-amber-400 mb-1">محاكي السيناريوهات والضغط العالي (Stress & Compliance Simulator)</h2>
+                  <p className="text-xs text-slate-400">اختبار تأثير متغيرات المعايير والنسب على صافي الربح والوعاء الزكوي لحظياً.</p>
                 </div>
-                <button
-                  onClick={handleTestConnection}
-                  className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition shadow-lg flex items-center gap-2"
-                >
-                  <span>تشفير التوكن واختبار الاتصال</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* المستشار الذكي CFO AI والمربوط بحالة الملف */}
-        {activeTab === 'cfo' && (
-          <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
-            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
-              <div>
-                <h2 className="text-sm font-bold text-amber-400 mb-1">المستشار المالي الذكي (CFO) Advisor & Assistant Engine</h2>
-                <p className="text-xs text-slate-400">مساعدك الذكي للإجابة عن الاستفسارات المحاسبية وتدقيق الـ ERP وتدقيق التوصيات المالية وفق الـ IFRS.</p>
-              </div>
-              <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                المحرك الذكي متصل
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-1">
-                <span className="text-[11px] text-slate-400">مؤشر الامتثال IFRS</span>
-                <span className="text-lg font-bold text-emerald-400">
-                  {auditData ? `${auditData.complianceRate}%` : '99.95%'}
+                <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  وضع المحاكاة النشطة
                 </span>
-                <span className="text-[10px] text-emerald-500/80">مرتفع جداً ومطابق للمتطلبات</span>
               </div>
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-1">
-                <span className="text-[11px] text-slate-400">إجمالي الحسابات المفحوصة</span>
-                <span className="text-lg font-bold text-amber-400">
-                  {auditData ? `${(auditData.totalAccounts || auditData.totalRows || 2000).toLocaleString()} حساب` : '٢,٠٠٠ حساب'}
-                </span>
-                <span className="text-[10px] text-amber-500/80">من الملف: {auditData?.fileName || selectedFileName || 'افتراضي'}</span>
-              </div>
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-1">
-                <span className="text-[11px] text-slate-400">التنبيهات الفورية النشطة</span>
-                <span className="text-lg font-bold text-rose-400">{realTimeAlerts.length} تنبيهات</span>
-                <span className="text-[10px] text-rose-500/80">تتطلب مراجعة</span>
-              </div>
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-1">
-                <span className="text-[11px] text-slate-400">حالة الربط السحابي</span>
-                <span className="text-lg font-bold text-emerald-400">نشط (Active)</span>
-                <span className="text-[10px] text-slate-400">مزامنة لحظية مع النظام</span>
-              </div>
-            </div>
-            <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between h-[55vh] overflow-hidden">
-              <div className="flex-1 overflow-y-auto flex flex-col gap-3 pr-2">
-                {chatHistory.map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-start' : 'justify-end'}`}>
-                    <div className={`max-w-[75%] p-3.5 rounded-2xl text-xs leading-relaxed font-mono ${msg.sender === 'user' ? 'bg-slate-900 text-slate-200 border border-slate-800' : 'bg-amber-600 text-white font-medium shadow-md'}`}>
-                      {msg.text}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
+                  <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">متغيرات المحاكاة والفرضيات</h3>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] text-slate-400">مخصص هبوط مخزون IAS 2:</label>
+                    <input
+                      type="number"
+                      value={inventoryProvision}
+                      onChange={(e) => setInventoryProvision(Number(e.target.value))}
+                      className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] text-slate-400">نسبة الزكاة / الضريبة الفرضية (%):</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={zakatRate}
+                      onChange={(e) => setZakatRate(Number(e.target.value))}
+                      className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] text-slate-400">معدل الخصم لنموذج القيمة الحالية IFRS 16 (%):</label>
+                    <input
+                      type="number"
+                      value={discountRate}
+                      onChange={(e) => setDiscountRate(Number(e.target.value))}
+                      className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2 mb-4">النتائج المالية بعد المحاكاة</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                        <span className="text-[11px] text-slate-400 block mb-1">صافي الربح المعدل بعد المخصصات</span>
+                        <span className="text-lg font-bold text-amber-400">${Number(adjustedNetProfit).toLocaleString()}</span>
+                      </div>
+                      <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                        <span className="text-[11px] text-slate-400 block mb-1">الوعاء الزكوي / الضريبة المقدرة</span>
+                        <span className="text-lg font-bold text-rose-400">${Number(calculatedZakat).toLocaleString()}</span>
+                      </div>
+                      <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                        <span className="text-[11px] text-slate-400 block mb-1">صافي الربح النهائي بعد الزكاة</span>
+                        <span className="text-lg font-bold text-emerald-400">${Number(netAfterZakat).toLocaleString()}</span>
+                      </div>
+                      <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                        <span className="text-[11px] text-slate-400 block mb-1">معدل العائد على الأصول (ROA) - محاكي</span>
+                        <span className="text-lg font-bold text-blue-400">+{calculatedRoa}%</span>
+                      </div>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-              <form onSubmit={handleSendChat} className="mt-4 flex gap-2 pt-3 border-t border-slate-800">
-                <input
-                  type="text"
-                  value={chatMessage}
-                  onChange={(e) => setChatMessage(e.target.value)}
-                  placeholder="اسأل المستشار الذكي عن سوق المدققين، أو الملف المرفوع، أو التدفقات النقدية..."
-                  className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-                />
-                <button
-                  type="submit"
-                  className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition shadow-lg"
-                >
-                  إرسال
-                </button>
-              </form>
             </div>
-          </div>
-        )}
+          )}
+          {activeTab === 'erp' && (
+            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
+                <div>
+                  <h2 className="text-sm font-bold text-amber-400 mb-1">إعدادات الربط المباشر وحماية البيانات (SAEIS Security Gateway)</h2>
+                  <p className="text-xs text-slate-400">ربط مشفر آمن لتصدير قيود التسوية واستيراد البيانات عبر الـ API مع تشفير التوكن (Bearer Token Encryption).</p>
+                </div>
+                <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  اتصال مشفر ٢٥٦-AES
+                </span>
+              </div>
+              <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-slate-300">نظام ERP المستهدف</label>
+                    <select
+                      value={selectedErpSystem}
+                      onChange={(e) => setSelectedErpSystem(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                    >
+                      <option value="Odoo ERP (REST API)">Odoo ERP</option>
+                      <option value="Onyx Pro (أونكس برو)">Onyx Pro (أونكس برو)</option>
+                      <option value="SAP Business One">SAP Business One</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-slate-300">رابط نقطة الاتصال (API Endpoint):</label>
+                    <input
+                      type="text"
+                      value={apiEndpoint}
+                      onChange={(e) => setApiEndpoint(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 font-mono"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-slate-300 flex justify-between items-center">
+                      <span>مفتاح المصادقة والتوكن المشفر</span>
+                      <span className="text-[10px] text-emerald-400 font-bold">Encrypted</span>
+                    </label>
+                    <div className="relative flex items-center">
+                      <input
+                        type={showApiKey ? "text" : "password"}
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        placeholder="••••••••••••••••"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-amber-400 focus:outline-none focus:border-amber-500 font-mono tracking-widest pl-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        className="absolute left-3 text-slate-400 hover:text-white text-xs transition"
+                        title={showApiKey ? "إخفاء المفتاح" : "إظهار المفتاح"}
+                      >
+                        {showApiKey ? "👁️" : "🔒"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center pt-4 border-t border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">حالة التشفير والربط:</span>
+                    <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${connectionStatus.includes('متصل') ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
+                      {connectionStatus}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleTestConnection}
+                    className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition shadow-lg flex items-center gap-2"
+                  >
+                    <span>تشفير التوكن واختبار الاتصال</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
 
-        {/* نافذة رفع ملف البيانات المنبثقة (مرة واحدة فقط بدون تكرار) */}
+        {/* نافذة رفع ملف البيانات المنبثقة (مرة واحدة فقط) */}
         {showUploadModal && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" dir="rtl">
             <div className="bg-slate-950 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl flex flex-col gap-5 relative animate-in fade-in zoom-in-95 duration-150">
