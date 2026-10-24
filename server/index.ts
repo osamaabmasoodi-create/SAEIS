@@ -9,7 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({
-  origin: 'http://localhost:5175',
+  origin: ['http://localhost:5173', 'http://localhost:5175'],
   credentials: true
 }));
 
@@ -25,7 +25,9 @@ app.get('/api/v1/health', (req: Request, res: Response) => {
     timestamp: new Date().toISOString()
   });
 });
-
+app.get('/', (req, res) => {
+  res.send('SAEIS Backend Server is Running API endpoints available');
+});
 app.listen(PORT, () => {
   console.log(`[SAEIS Server] Running on http://localhost:${PORT}`);
 });
