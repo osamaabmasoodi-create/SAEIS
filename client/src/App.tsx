@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import AuditAnalytics from './components/AuditAnalytics';
 import CorrectionEngine from './components/CorrectionEngine';
 import AuditRulesIFRS from './components/AuditRulesIFRS';
@@ -18,6 +19,10 @@ import KpiChartsHub from './components/KpiChartsHub';
 import GovernanceReportsHub from './components/GovernanceReportsHub';
 import FraudRiskMatrixHub from './components/FraudRiskMatrixHub';
 import VarianceAnalysisHub from './components/VarianceAnalysisHub';
+import ExecutiveBoardDashboard from './components/ExecutiveBoardDashboard';
+import DuplicateGhostInvoicesEngine from './components/DuplicateGhostInvoicesEngine';
+import DigitalAuditVault from './components/DigitalAuditVault';
+import LiquiditySolvencyRatiosEngine from './components/LiquiditySolvencyRatiosEngine'; // <-- تم الإضافة بنجاح
 import { AppProvider } from './components/AppContext';
 import * as XLSX from 'xlsx';
 
@@ -31,11 +36,6 @@ interface StandardItem {
   complianceRate: string;
 }
 
-interface ChatMessage {
-  sender: 'user' | 'ai';
-  text: string;
-}
-
 interface AdjustmentEntry {
   id: number;
   standard: string;
@@ -43,16 +43,20 @@ interface AdjustmentEntry {
   debitAccount: string;
   creditAccount: string;
   amount: number;
-  status: 'معلق' | 'تم الترحيل للـ ERP';
+  status: 'معلق' | 'تم الترحيل للـ ERP' | 'ملغى بقيد عكسي';
 }
 
-interface FraudAnomalyItem {
+interface AdvancedFraudAnomalyItem {
   id: number;
   entryNumber: string;
   riskType: string;
   amount: number;
   reason: string;
   riskLevel: 'متوسط' | 'عالي';
+  username: string;
+  timestamp: string;
+  ipAddress: string;
+  locationScope: 'داخل شبكة الشركة (Internal IP)' | 'خارجي (External IP)';
 }
 
 interface RealTimeAlert {
@@ -62,14 +66,14 @@ interface RealTimeAlert {
   severity: 'إشعار' | 'تحذير' | 'حرج';
   timestamp: string;
   message: string;
-}
-
-interface CashFlowMonth {
-  month: string;
-  receivables: number;
-  payables: number;
-  netCashFlow: number;
-  status: 'آمن' | 'عجز محتمل';
+  isRead: boolean;
+  entryDetails?: {
+    entryNo: string;
+    debitAcc: string;
+    creditAcc: string;
+    amount: number;
+    issueCategory: string;
+  };
 }
 
 interface AuditorProfile {
@@ -83,14 +87,19 @@ interface AuditorProfile {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>('cfo');
+  const { t, i18n } = useTranslation();
+
+  const toggleLanguage = () => {
+    const nextLang = i18n.language === 'ar' ? 'en' : 'ar';
+    i18n.changeLanguage(nextLang);
+    document.documentElement.dir = nextLang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = nextLang;
+  };
+
+  const [activeTab, setActiveTab] = useState<string>('executive_board');
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
   const [modalErpSystem, setModalErpSystem] = useState<string>('Odoo ERP');
   const [showApiKey, setShowApiKey] = useState<boolean>(false);
-  const [chatMessage, setChatMessage] = useState<string>('');
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
-    { sender: 'ai', text: 'أهلاً بك يا أسامة. أنا مستشارك المالي الذكي.' }
-  ]);
   const [selectedErpSystem, setSelectedErpSystem] = useState<string>('Odoo ERP');
   const [apiKey, setApiKey] = useState<string>('');
   const [apiEndpoint, setApiEndpoint] = useState<string>('');
@@ -104,6 +113,9 @@ export default function App() {
   const [collectionDelayDays, setCollectionDelayDays] = useState<number>(0);
   const [inventoryProvision, setInventoryProvision] = useState<number>(0);
   const [discountRate, setDiscountRate] = useState<number>(0);
+  const [adjustmentsFilter, setAdjustmentsFilter] = useState<'all' | 'pending' | 'posted'>('all');
+
+  const [selectedAlertForDetails, setSelectedAlertForDetails] = useState<RealTimeAlert | null>(null);
 
   const currentRevenue = auditData?.totalRevenue || 0;
   const currentProvision = auditData?.totalProvisions || inventoryProvision || 0;
@@ -114,31 +126,102 @@ export default function App() {
   const netAfterZakat = currentRevenue > 0 ? (adjustedNetProfit - Number(calculatedZakat)).toFixed(2) : "0.00";
   const calculatedRoa = currentAssets > 0 ? ((Number(netAfterZakat) / currentAssets) * 100).toFixed(1) : "0.0";
 
+  // قيود التسوية والتصحيح
   const [adjustmentEntries, setAdjustmentEntries] = useState<AdjustmentEntry[]>([
     { id: 1, standard: 'IAS 16', description: 'إعادة تصنيف أصل أدوات مكتبية استهلاكية مسجلة خطأ كمصروفات', debitAccount: 'الأصول الثابتة (معدات)', creditAccount: 'حساب المصروفات العمومية', amount: 7500, status: 'معلق' },
     { id: 2, standard: 'IAS 2', description: 'إثبات مخصص هبوط أسعار المخزون الراكد للفترة الحالية', debitAccount: 'مصروف هبوط مخزون (أرباح وخسائر)', creditAccount: 'مخصص هبوط مخزون', amount: 18500, status: 'معلق' },
     { id: 3, standard: 'IFRS 16', description: 'إثبات أصل حق الاستخدام والالتزام الإيجاري السنوي المخصوم', debitAccount: 'أصول حق الاستخدام (ROU Assets)', creditAccount: 'التزامات عقود الإيجار طويلة الأجل', amount: 45000, status: 'معلق' }
   ]);
 
-  const [fraudAnomalies] = useState<FraudAnomalyItem[]>([
-    { id: 101, entryNumber: 'JE-2026-9012', riskType: 'فواتير مجزأة لتفادي صلاحيات الاعتماد', amount: 4900, reason: 'فواتير متتالية بقيمة أقل بقليل من حد اعتماد المدير المالي', riskLevel: 'عالي' },
-    { id: 102, entryNumber: 'JE-2026-8834', riskType: 'قيد مدخل خارج أوقات الدوام الرسمي', amount: 18500, reason: 'تم ترحيل القيد المحاسبي في الساعة ٢:٣٠ صباحاً يوم جمعة بواسطة مستخدم فرعي', riskLevel: 'متوسط' },
-    { id: 103, entryNumber: 'JE-2026-7721', riskType: 'تكرار قيد مصروفات لنفس المورد', amount: 1200, reason: 'وجود قيدين بنفس القيمة والبيان خلال أقل من ٢٤ ساعة', riskLevel: 'عالي' }
+  // شبهات الاحتيال وبيانات التحقيق الجنائية
+  const [advancedFraudAnomalies] = useState<AdvancedFraudAnomalyItem[]>([
+    { 
+      id: 101, 
+      entryNumber: 'JE-2026-9012', 
+      riskType: 'فواتير مجزأة لتفادي صلاحيات الاعتماد', 
+      amount: 4900, 
+      reason: 'فواتير متتالية بقيمة أقل بقليل من حد اعتماد المدير المالي', 
+      riskLevel: 'عالي',
+      username: 'mohammed.ali',
+      timestamp: '2026-10-22 02:15:30',
+      ipAddress: '192.168.1.104',
+      locationScope: 'داخل شبكة الشركة (Internal IP)'
+    },
+    { 
+      id: 102, 
+      entryNumber: 'JE-2026-8834', 
+      riskType: 'قيد مدخل خارج أوقات الدوام الرسمي', 
+      amount: 18500, 
+      reason: 'تم ترحيل القيد المحاسبي في الساعة ٢:٣٠ صباحاً يوم جمعة بواسطة مستخدم فرعي', 
+      riskLevel: 'متوسط',
+      username: 'temp_user_02',
+      timestamp: '2026-10-17 02:30:11',
+      ipAddress: '185.220.101.5',
+      locationScope: 'خارجي (External IP)'
+    }
   ]);
 
-  const [realTimeAlerts] = useState<RealTimeAlert[]>([
-    { id: 1, title: 'تجاوز حد رسملة الأصول', standard: 'IAS 16', severity: 'تحذير', timestamp: 'منذ 5 دقائق', message: 'تم رصد بند بقيمة ٧,٥٠٠ مسجل كمصروفات صيانة بينما يتجاوز الحد الأدنى للرسملة' },
-    { id: 2, title: 'انحراف تقييم المخزون', standard: 'IAS 2', severity: 'حرج', timestamp: 'منذ ٣٥ دقيقة', message: 'تم الكشف عن أصناف راكدة تتطلب تكوين مخصص هبوط بـ ١٨,٥٠٠' },
-    { id: 3, title: 'محاولة تجزئة فواتير مشبوهة', standard: 'Anomaly ML', severity: 'حرج', timestamp: 'منذ ساعة', message: 'رصد نظام التعلم الآلي فواتير متتالية بقيم متطابقة لتفادي صلاحيات الاعتماد' },
-    { id: 4, title: 'تنبؤ عجز نقدي محتمل', standard: 'CashFlow AI', severity: 'تحذير', timestamp: 'منذ ساعتين', message: 'تتوقع النماذج التحليلية ضغط سيولة محتمل في شهر نوفمبر بناء على تأخر تحصيل العملاء' }
+  // التنبيهات الفورية
+  const [realTimeAlerts, setRealTimeAlerts] = useState<RealTimeAlert[]>([
+    { 
+      id: 1, 
+      title: 'تجاوز حد رسملة الأصول', 
+      standard: 'IAS 16', 
+      severity: 'تحذير', 
+      timestamp: 'منذ 5 دقائق', 
+      message: 'تم رصد بند بقيمة ٧,٥٠٠ مسجل كمصروفات صيانة بينما يتجاوز الحد الأدنى للرسملة ويجب إضافته للأصول',
+      isRead: false,
+      entryDetails: {
+        entryNo: 'JE-2026-1044',
+        debitAcc: 'حساب مصروفات صيانة عمومية (خطأ)',
+        creditAcc: 'حساب النقدية والبنك',
+        amount: 7500,
+        issueCategory: 'تصنيف أصل ثابت كمصروف إيرادي'
+      }
+    },
+    { 
+      id: 2, 
+      title: 'انحراف تقييم المخزون', 
+      standard: 'IAS 2', 
+      severity: 'حرج', 
+      timestamp: 'منذ ٣٥ دقيقة', 
+      message: 'تم الكشف عن أصناف راكدة تتطلب تكوين مخصص هبوط بـ ١٨,٥٠٠',
+      isRead: false,
+      entryDetails: {
+        entryNo: 'JE-2026-0982',
+        debitAcc: 'تكلفة البضاعة المباعة',
+        creditAcc: 'حساب مخزون البضائع الراكدة',
+        amount: 18500,
+        issueCategory: 'عدم تكوين مخصص هبوط أسعار المخزون'
+      }
+    }
   ]);
 
-  const cashFlowForecast: CashFlowMonth[] = [
-    { month: 'أكتوبر (٢٠٢٦)', receivables: 320000, payables: 240000, netCashFlow: 80000, status: 'آمن' },
-    { month: 'نوفمبر (٢٠٢٦)', receivables: 280000, payables: 310000, netCashFlow: -30000, status: 'عجز محتمل' },
-    { month: 'ديسمبر (٢٠٢٦)', receivables: 450000, payables: 350000, netCashFlow: 100000, status: 'آمن' },
-    { month: 'يناير (٢٠٢٧)', receivables: 290000, payables: 320000, netCashFlow: -30000, status: 'عجز محتمل' }
-  ];
+  const unreadAlertsCount = realTimeAlerts.filter(a => !a.isRead).length;
+
+  const handleMarkAsRead = (id: number) => {
+    setRealTimeAlerts(prev =>
+      prev.map(alert => alert.id === id ? { ...alert, isRead: true } : alert)
+    );
+  };
+
+  // التدفقات النقدية والربط الشرطي التلقائي للحالة بناءً على قيمة صافي التدفق
+  const baseReceivables = [320000, 280000, 450000, 290000];
+  const basePayables = [240000, 310000, 350000, 320000];
+  const monthsList = ['أكتوبر (٢٠٢٦)', 'نوفمبر (٢٠٢٦)', 'ديسمبر (٢٠٢٦)', 'يناير (٢٠٢٧)'];
+
+  const dynamicCashFlowForecast = monthsList.map((month, i) => {
+    const adjustedReceivables = Math.max(0, baseReceivables[i] - (collectionDelayDays * 2000));
+    const payables = basePayables[i];
+    const netCashFlow = adjustedReceivables - payables;
+    return {
+      month,
+      receivables: adjustedReceivables,
+      payables,
+      netCashFlow,
+      status: netCashFlow >= 0 ? ('آمن' as const) : ('عجز محتمل' as const)
+    };
+  });
 
   const [auditorsList] = useState<AuditorProfile[]>([
     { id: 1, name: 'أحمد شاكر عقاب', firm: 'مكتب الخبراء للاستشارات والتحول المحاسبي', specialty: 'معايير IFRS والزكاة والضريبة', rating: 4.9, completedAudits: 142, status: 'متاح الآن' },
@@ -229,6 +312,13 @@ export default function App() {
     alert(`تم ترحيل قيد التسوية رقم (${id}) بنجاح إلى نظام الـ ${selectedErpSystem} عبر الـ API.`);
   };
 
+  const handleReverseEntry = (id: number) => {
+    setAdjustmentEntries(prev =>
+      prev.map(entry => entry.id === id ? { ...entry, status: 'ملغى بقيد عكسي' } : entry)
+    );
+    alert(`تم إنشاء قيد عكسي لتلغي أثر القيد رقم (${id}) في نظام الـ ERP بنجاح.`);
+  };
+
   const handleRequestAudit = (auditorName: string) => {
     alert(`تم إرسال طلب مراجعة وتدقيق عن بعد بنجاح إلى المدقق ${auditorName} عبر SAEIS Marketplace.`);
   };
@@ -243,54 +333,70 @@ export default function App() {
       <html dir="rtl" lang="ar">
       <head>
         <meta charset="utf-8" />
-        <title>SAEIS | منظومة التدقيق الشامل وسوق المدققين</title>
+        <title>SAEIS | تقرير التدقيق المالي الشامل ومعايير IFRS</title>
         <style>
-          body { font-family: Tahoma, sans-serif; padding: 20px; color: #111; background: #fff; }
-          .header { border-bottom: 2px solid #d97706; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-          .title { font-size: 18px; font-weight: bold; color: #b45309; }
-          .meta { font-size: 12px; color: #555; }
-          .box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+          body { font-family: Tahoma, sans-serif; padding: 30px; color: #111; background: #fff; }
+          .header { border-bottom: 2px solid #d97706; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+          .title { font-size: 20px; font-weight: bold; color: #b45309; }
+          .meta { font-size: 13px; color: #555; }
+          .box { background: #f8fafc; border: 1px solid #cbd5e1; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+          .box h3 { margin-top: 0; color: #1e293b; font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
           table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-          th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: right; font-size: 12px; }
-          th { background: #f1f5f9; color: #334155; }
+          th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: right; font-size: 12px; }
+          th { background: #f1f5f9; color: #334155; font-weight: bold; }
+          .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; }
         </style>
       </head>
       <body>
         <div class="header">
           <div>
-            <div class="title">منظومة SAEIS للتدقيق المالي والربط الذكي</div>
-            <div class="meta">تقرير المنظومة الشامل وسوق المدققين المستقلين (Auditors Marketplace)</div>
+            <div class="title">منظومة التدقيق المالي والربط الذكي (SAEIS)</div>
+            <div class="meta">تقرير التدقيق الشامل وقوائم الامتثال لمعايير IFRS</div>
           </div>
-          <div class="meta">${new Date().toLocaleDateString('ar-SA')}</div>
+          <div class="meta">تاريخ التقرير: ${new Date().toLocaleDateString('ar-SA')}</div>
         </div>
+
         <div class="box">
-          <h3>ملخص الحالة المالية والرقابية</h3>
-          <p><strong>مؤشر الامتثال لـ IFRS:</strong> ${auditData ? auditData.complianceRate + '%' : '99.95%'}</p>
-          <p><strong>عدد الحسابات المفحوصة:</strong> ${auditData ? (auditData.totalAccounts || auditData.totalRows || 2000).toLocaleString() : '2,000'}</p>
+          <h3>ملخص الحالة المالية والرقابية للشركة</h3>
+          <p><strong>حالة الربط والاتصال بالـ ERP:</strong> نشط ومؤمن (256-AES)</p>
+          <p><strong>مؤشر الامتثال العام للمعايير الدولية:</strong> ${auditData ? auditData.complianceRate + '%' : '97.8%'}</p>
+          <p><strong>إجمالي الحسابات المفحوصة:</strong> ${auditData ? (auditData.totalAccounts || auditData.totalRows || 2000).toLocaleString() : '2,000 حساب'}</p>
         </div>
-        <h3>قائمة مكاتب التدقيق المستقلة المتاحة للربط عن بعد</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>اسم المدقق / الخبير</th>
-              <th>المكتب المحاسبي</th>
-              <th>التخصص الدقيق</th>
-              <th>التقييم</th>
-              <th>المهام المنجزة</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${auditorsList.map(a => `
+
+        <div class="box">
+          <h3>أبرز قيود التسوية والتصحيح المقترحة</h3>
+          <table>
+            <thead>
               <tr>
-                <td><b>${a.name}</b></td>
-                <td>${a.firm}</td>
-                <td>${a.specialty}</td>
-                <td>${a.rating}</td>
-                <td>${a.completedAudits}</td>
+                <th>المعيار</th>
+                <th>بيان القيد والتسوية المحاسبية</th>
+                <th>الطرف المدين</th>
+                <th>الطرف الدائن</th>
+                <th>المبلغ ($)</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>IAS 16</b></td>
+                <td>رسملة مصروفات صيانة دورية مسجلة خطأ كمصروف</td>
+                <td>الأصول الثابتة</td>
+                <td>المصروفات العمومية</td>
+                <td>7,500</td>
+              </tr>
+              <tr>
+                <td><b>IAS 2</b></td>
+                <td>إثبات مخصص هبوط أسعار المخزون الراكد</td>
+                <td>مصروف هبوط مخزون</td>
+                <td>مخصص هبوط مخزون</td>
+                <td>18,500</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="footer">
+          تم استخراج هذا التقرير آلياً عبر منظومة SAEIS الذكية للتدقيق المحاسبي - جميع الحقوق محفوظة.
+        </div>
       </body>
       </html>
     `;
@@ -299,7 +405,7 @@ export default function App() {
     printWindow.focus();
     setTimeout(() => {
       printWindow.print();
-    }, 500);
+    }, 600);
   };
 
   const handleProcessAudit = async (file: File) => {
@@ -359,6 +465,12 @@ export default function App() {
     reader.readAsArrayBuffer(uploadedFile);
   };
 
+  const filteredAdjustments = adjustmentEntries.filter(entry => {
+    if (adjustmentsFilter === 'pending') return entry.status === 'معلق';
+    if (adjustmentsFilter === 'posted') return entry.status === 'تم الترحيل للـ ERP' || entry.status === 'ملغى بقيد عكسي';
+    return true;
+  });
+
   return (
     <AppProvider>
       <div className="min-h-screen bg-slate-900 text-slate-100 p-4 flex flex-col gap-4 font-sans" dir="rtl">
@@ -367,48 +479,94 @@ export default function App() {
         <header className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex justify-between items-center">
           <div>
             <h1 className="text-base font-extrabold text-white flex items-center gap-2">
-              <span>منظومة SAEIS للتدقيق المالي والربط الذكي</span>
+              <span>{t('platformTitle')}</span>
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">المنصة المتكاملة لفحص القيود والربط مع الأنظمة المالية وتطبيق معايير IFRS</p>
+            <p className="text-xs text-slate-400 mt-0.5">{t('platformSubtitle')}</p>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={toggleLanguage}
+              className="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1 shadow-md"
+            >
+              🌐 {t('languageBtn')}
+            </button>
             <button
               onClick={handleExportPDF}
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow-lg flex items-center gap-1.5"
             >
-              <span>تصدير تقرير التدقيق PDF</span>
+              <span>{t('exportPdf')}</span>
             </button>
             <button
               onClick={() => setShowUploadModal(true)}
               className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow-lg flex items-center gap-1.5"
             >
-              <span>رفع ملف البيانات Excel / CSV</span>
+              <span>{t('uploadExcel')}</span>
             </button>
             <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs px-3 py-1.5 rounded-xl font-bold">
-              حالة النظام مستقر وفعال
+              {t('systemStatus')}
             </span>
           </div>
         </header>
 
-        {/* شريط التبويبات العلوي */}
+        {/* شريط التبويبات العلوي الكامل لجميع الشاشات */}
         <nav className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800">
+          
+          {/* زر لوحة القيادة التنفيذية */}
+          <button 
+            onClick={() => setActiveTab('executive_board')} 
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'executive_board' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+          >
+            📊 لوحة القيادة التنفيذية
+          </button>
+
+          {/* زر محرك كشف الفواتير المزدوجة والمهمة */}
+          <button 
+            onClick={() => setActiveTab('ghost_invoices')} 
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'ghost_invoices' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+          >
+            🕵️ كشف الفواتير المزدوجة والمهمة
+          </button>
+
+          {/* زر أرشيف أوراق العمل الجنائية الرقمية */}
+          <button 
+            onClick={() => setActiveTab('audit_vault')} 
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'audit_vault' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+          >
+            📁 أرشيف أوراق العمل
+          </button>
+
+          {/* زر تحليل النسب المالية والسيولة النسبية الجديد */}
+          <button 
+            onClick={() => setActiveTab('ratios_analyzer')} 
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'ratios_analyzer' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}
+          >
+            📈 تحليل النسب والسيولة
+          </button>
+
           <button onClick={() => setActiveTab('analytics')} className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'analytics' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-            لوحة التحليلات
+            {t('analytics')}
           </button>
           <button onClick={() => setActiveTab('credit')} className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'credit' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-            محرك التقييم الائتماني
+            {t('creditScoring')}
           </button>
           <button onClick={() => setActiveTab('marketplace')} className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'marketplace' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-            سوق المدققين
+            {t('marketplace')}
           </button>
           <button onClick={() => setActiveTab('cashflow')} className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'cashflow' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-            التدفقات النقدية
+            {t('cashFlow')}
           </button>
-          <button onClick={() => setActiveTab('alerts')} className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'alerts' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-            التنبيهات الفورية
+          
+          <button onClick={() => setActiveTab('alerts')} className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'alerts' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+            <span>🔔 تنبيهات فورية</span>
+            {unreadAlertsCount > 0 && (
+              <span className="bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold animate-pulse">
+                {unreadAlertsCount}
+              </span>
+            )}
           </button>
+
           <button onClick={() => setActiveTab('tax_fraud')} className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'tax_fraud' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-            الضرائب والزكاة واكتشاف AI
+            الضرائب والزكاة وأحدث شبهات الاحتيال
           </button>
           <button onClick={() => setActiveTab('fraud_room')} className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'fraud_room' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}>
             غرفة اكتشاف الاحتيال
@@ -468,15 +626,20 @@ export default function App() {
             محاكي السيناريوهات
           </button>
           <button onClick={() => setActiveTab('erp')} className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'erp' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-            الربط المباشر ERP
+            {t('erpSync')}
           </button>
           <button onClick={() => setActiveTab('cfo')} className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'cfo' ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-            المستشار الذكي CFO AI
+            {t('cfoAdvisor')}
           </button>
         </nav>
 
-        {/* العرض الفرعي للشاشة النشطة (يحتوي على CfoAdvisorView مرة واحدة فقط) */}
+        {/* العرض الفرعي لجميع الشاشات والمكونات النشطة */}
         <main className="flex-1">
+          {activeTab === 'executive_board' && <ExecutiveBoardDashboard />}
+          {activeTab === 'ghost_invoices' && <DuplicateGhostInvoicesEngine />}
+          {activeTab === 'audit_vault' && <DigitalAuditVault />}
+          {activeTab === 'ratios_analyzer' && <LiquiditySolvencyRatiosEngine />}
+
           {activeTab === 'analytics' && <AuditAnalytics />}
           {activeTab === 'credit' && <CreditScoringComponent />}
           {activeTab === 'correction' && <CorrectionEngine />}
@@ -494,8 +657,10 @@ export default function App() {
           {activeTab === 'fraud_risk' && <FraudRiskMatrixHub />}
           {activeTab === 'variance_hub' && <VarianceAnalysisHub />}
           {activeTab === 'cfo' && <CfoAdvisorView auditData={auditData} />}
+          
+          {/* شاشة سوق المدققين */}
           {activeTab === 'marketplace' && (
-            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+            <div className="flex flex-col gap-5 text-right font-sans h-full">
               <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
                 <div>
                   <h2 className="text-sm font-bold text-amber-400 mb-1">سوق المدققين المستقلين (Auditors Marketplace)</h2>
@@ -507,7 +672,7 @@ export default function App() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {auditorsList.map(auditor => (
-                  <div key={auditor.id} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between gap-4">
+                  <div key={auditor.id} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between gap-4 text-right">
                     <div className="flex flex-col gap-2">
                       <div className="flex justify-between items-start">
                         <span className="text-xs font-extrabold text-white">{auditor.name}</span>
@@ -536,8 +701,10 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* شاشة التدفقات النقدية */}
           {activeTab === 'cashflow' && (
-            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+            <div className="flex flex-col gap-5 text-right font-sans h-full">
               <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
                 <div>
                   <h2 className="text-sm font-bold text-amber-400 mb-1">المحرك التنبؤي للتدفقات النقدية (Predictive Cash Flow Auditing)</h2>
@@ -554,33 +721,35 @@ export default function App() {
                     <label className="text-[11px] text-slate-400">معدل تأخر التحصيل المقدر (يوم):</label>
                     <input
                       type="number"
+                      min="0"
                       value={collectionDelayDays}
-                      onChange={(e) => setCollectionDelayDays(Number(e.target.value))}
+                      onChange={(e) => setCollectionDelayDays(Math.max(0, Number(e.target.value)))}
                       className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500 mt-2"
                     />
+                    <span className="text-[10px] text-emerald-400">ملاحظة: القيم موجبة فقط لتجنب الأخطاء بالحساب.</span>
                   </div>
                   <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col gap-2">
                     <span className="text-[11px] text-slate-400">توصية الذكاء الاصطناعي</span>
                     <p className="text-[11px] text-slate-300 leading-relaxed">
-                      تظهر التحليلات ضغطاً متوقعاً في السيولة خلال شهر نوفمبر، يوصى بتسريع إجراءات المطالبات قبل نهاية الشهر بسبب تأخر تحصيل العملاء.
+                      تظهر التحليلات ضغطاً متوقعاً في السيولة خلال الأشهر القادمة إذا زاد التأخر، يوصى بتسريع تحصيل مستحقات العملاء.
                     </p>
                   </div>
                 </div>
                 <div className="lg:col-span-2 bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
-                  <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">توقعات التدفقات النقدية للأشهر القادمة</h3>
+                  <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">توقعات التدفقات النقدية (ربط آلي للحالة بناءً على صافي التدفق)</h3>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                       <thead>
                         <tr className="bg-slate-900 text-slate-300 text-[11px]">
                           <th className="p-3 text-right border border-slate-800">الشهر</th>
-                          <th className="p-3 text-right border border-slate-800">المقبوضات (الذمم المدينة)</th>
-                          <th className="p-3 text-right border border-slate-800">المدفوعات (الذمم الدائنة)</th>
+                          <th className="p-3 text-right border border-slate-800">المقبوضات</th>
+                          <th className="p-3 text-right border border-slate-800">المدفوعات</th>
                           <th className="p-3 text-right border border-slate-800">صافي التدفق</th>
-                          <th className="p-3 text-center border border-slate-800">الحالة</th>
+                          <th className="p-3 text-center border border-slate-800">الحالة الناتجة</th>
                         </tr>
                       </thead>
                       <tbody className="text-xs text-slate-200">
-                        {cashFlowForecast.map((item, idx) => (
+                        {dynamicCashFlowForecast.map((item, idx) => (
                           <tr key={idx} className="hover:bg-slate-900/50 transition">
                             <td className="p-3 border border-slate-800 font-bold text-white">{item.month}</td>
                             <td className="p-3 border border-slate-800 text-emerald-400 font-mono">${item.receivables.toLocaleString()}</td>
@@ -589,7 +758,7 @@ export default function App() {
                               ${item.netCashFlow.toLocaleString()}
                             </td>
                             <td className="p-3 border border-slate-800 text-center">
-                              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${item.status === 'آمن' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
+                              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${item.netCashFlow >= 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
                                 {item.status}
                               </span>
                             </td>
@@ -602,55 +771,108 @@ export default function App() {
               </div>
             </div>
           )}
+          
+          {/* شاشة التنبيهات الفورية */}
           {activeTab === 'alerts' && (
-            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+            <div className="flex flex-col gap-5 text-right font-sans h-full">
               <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
                 <div>
-                  <h2 className="text-sm font-bold text-amber-400 mb-1">مركز التنبيهات الذكية الفورية (Smart Real-Time Alerts Center)</h2>
-                  <p className="text-xs text-slate-400">إشعارات لحظية تظهر أي مخالفة معيارية أو قيد مشبوه فور رفع الملف أو مراجعته مع الـ ERP.</p>
+                  <h2 className="text-sm font-bold text-amber-400 mb-1 flex items-center gap-2">
+                    <span>مركز التنبيهات الفورية الفعالة (Real-Time Smart Alerts)</span>
+                    <span className="bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs px-2.5 py-0.5 rounded-full font-bold">
+                      🔔 العداد: {unreadAlertsCount} تنبيهات غير مقروءة
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-400">إشعارات لحظية تُظهر أي مخالفة معيارية أو قيد مشبوه مع إمكانية عرض تفاصيل القيد الفردي وتحديد القراءة.</p>
                 </div>
                 <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
                   الرقابة الحية نشطة
                 </span>
               </div>
+
               <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
                 <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                  <h3 className="text-xs font-bold text-slate-200">التنبيهات الفورية ورصد المخاطر</h3>
-                  <span className="text-[11px] text-slate-400">إجمالي التنبيهات: <b className="text-amber-400">{realTimeAlerts.length}</b> تنبيه</span>
+                  <h3 className="text-xs font-bold text-slate-200">التنبيهات والقيود المكتشفة</h3>
+                  <span className="text-[11px] text-slate-400">إجمالي التنبيهات: <b className="text-amber-400">{realTimeAlerts.length}</b></span>
                 </div>
+                
                 <div className="flex flex-col gap-3">
                   {realTimeAlerts.map(alert => (
-                    <div key={alert.id} className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl flex flex-col gap-2">
+                    <div 
+                      key={alert.id} 
+                      className={`border p-4 rounded-xl flex flex-col gap-3 transition-all ${
+                        alert.isRead 
+                          ? 'bg-slate-950/40 border-slate-800/60 opacity-75' 
+                          : 'bg-slate-900 border-amber-500/30 shadow-md'
+                      }`}
+                    >
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-extrabold text-white">{alert.title}</span>
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">{alert.standard}</span>
+                          <span className={`text-xs font-extrabold ${alert.isRead ? 'text-slate-400' : 'text-white'}`}>
+                            {alert.title}
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700">
+                            {alert.standard}
+                          </span>
+                          {alert.isRead && (
+                            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">
+                              ✓ تمت القراءة
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${alert.severity === 'حرج' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : alert.severity === 'تحذير' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}>
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                            alert.severity === 'حرج' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 
+                            alert.severity === 'تحذير' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 
+                            'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                          }`}>
                             {alert.severity}
                           </span>
                           <span className="text-[10px] text-slate-400">{alert.timestamp}</span>
                         </div>
                       </div>
+
                       <p className="text-xs text-slate-300 leading-relaxed">{alert.message}</p>
+
+                      <div className="flex justify-between items-center pt-2 border-t border-slate-800/80">
+                        <button
+                          onClick={() => setSelectedAlertForDetails(alert)}
+                          className="bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1"
+                        >
+                          🔍 عرض تفاصيل القيد المحاسبي والتصنيف
+                        </button>
+
+                        {!alert.isRead ? (
+                          <button
+                            onClick={() => handleMarkAsRead(alert.id)}
+                            className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center gap-1"
+                          >
+                            ✓ تمت القراءة (إنقاص العداد)
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-slate-500 italic">تمت المراجعة من المحاسب</span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
           )}
+
+          {/* شاشة الضرائب والزكاة وشبهات الاحتيال */}
           {activeTab === 'tax_fraud' && (
-            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+            <div className="flex flex-col gap-5 text-right font-sans h-full">
               <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
                 <div>
-                  <h2 className="text-sm font-bold text-amber-400 mb-1">محرك تدقيق الضرائب والزكاة واكتشاف الشذوذ والاحتيال (Zakat, Tax & Fraud ML Engine)</h2>
-                  <p className="text-xs text-slate-400">حساب الوعاء الزكوي والضريبي آلياً واكتشاف القيود المشبوهة وتجزئة الفواتير عبر النماذج الذكية.</p>
+                  <h2 className="text-sm font-bold text-amber-400 mb-1">محرك احتساب الزكاة والضرائب وأحدث شبهات الاحتيال</h2>
+                  <p className="text-xs text-slate-400">حساب الوعاء الزكوي والضريبي مع تتبع سجلات شبهات الاحتيال وبيانات التحقيق التشغيلية.</p>
                 </div>
                 <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
                   الحماية والتدقيق نشط
                 </span>
               </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
                   <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">حماية وتدقيق الضرائب والزكاة</h3>
@@ -685,22 +907,37 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+
                 <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
-                  <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">نماذج اكتشاف الاحتيال والشذوذ (Anomaly ML)</h3>
-                  <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto">
-                    {fraudAnomalies.map(item => (
-                      <div key={item.id} className="bg-slate-900/80 border border-slate-800 p-3 rounded-xl flex flex-col gap-1.5">
+                  <h3 className="text-xs font-bold text-slate-200 border-b border-slate-800 pb-2">
+                    أحدث شبهات الاحتيال والمخاطر التشغيلية (Audit Trail Investigation)
+                  </h3>
+                  
+                  <div className="flex flex-col gap-3">
+                    {advancedFraudAnomalies.map(item => (
+                      <div key={item.id} className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl flex flex-col gap-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-[11px] font-bold text-rose-400">{item.riskType}</span>
-                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${item.riskLevel === 'عالي' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
-                            خطورة: {item.riskLevel}
+                          <span className="text-xs font-bold text-rose-400">{item.riskType}</span>
+                          <span className="text-[10px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2.5 py-0.5 rounded font-bold">
+                            مستوى الخطورة: {item.riskLevel}
                           </span>
                         </div>
+
                         <div className="flex justify-between items-center text-[11px] text-slate-300">
                           <span>رقم القيد: <b className="font-mono text-amber-300">{item.entryNumber}</b></span>
                           <span>المبلغ: <b className="font-mono text-white">${item.amount.toLocaleString()}</b></span>
                         </div>
-                        <p className="text-[10px] text-slate-400">{item.reason}</p>
+
+                        <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/40 p-2.5 rounded-lg border border-slate-800/80">
+                          {item.reason}
+                        </p>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t border-slate-800 text-[10px] font-mono text-slate-400">
+                          <div>المستخدم: <b className="text-amber-400">{item.username}</b></div>
+                          <div>الوقت والتاريخ: <b className="text-slate-200">{item.timestamp}</b></div>
+                          <div>عنوان الـ IP: <b className="text-emerald-400">{item.ipAddress}</b></div>
+                          <div>النطاق: <b className={item.locationScope.includes('خارجي') ? 'text-rose-400' : 'text-blue-400'}>{item.locationScope}</b></div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -708,22 +945,23 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* شاشة قيود التسوية والتصحيح */}
           {activeTab === 'adjustments' && (
-            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+            <div className="flex flex-col gap-5 text-right font-sans h-full">
               <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
                 <div>
-                  <h2 className="text-sm font-bold text-amber-400 mb-1">محرك قيود التسوية والتصحيح الآلي (Automated Adjustment Entries Engine)</h2>
-                  <p className="text-xs text-slate-400">توليد قيود المعالجة وفق الـ IFRS وترحيلها لحظياً لنظام الـ ERP المحاسبي المعتمد عبر الـ API.</p>
+                  <h2 className="text-sm font-bold text-amber-400 mb-1">محرك قيود التسوية والتصحيح الآلي (Automated Adjustment Entries)</h2>
+                  <p className="text-xs text-slate-400">إدارة وترحيل القيود مع إمكانية مراجعة القيود المرحلة وعكسها لإلغاء الأثر عند الحاجة.</p>
                 </div>
-                <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                  جاهز للترحيل السحابي
-                </span>
+                <div className="flex gap-2">
+                  <button onClick={() => setAdjustmentsFilter('all')} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${adjustmentsFilter === 'all' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-400'}`}>الكل</button>
+                  <button onClick={() => setAdjustmentsFilter('pending')} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${adjustmentsFilter === 'pending' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-400'}`}>القيود المعلقة</button>
+                  <button onClick={() => setAdjustmentsFilter('posted')} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${adjustmentsFilter === 'posted' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400'}`}>القيود المرحلة والمراجعة</button>
+                </div>
               </div>
-              <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-5">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                  <h3 className="text-xs font-bold text-slate-200">القيود المقترحة بناء على نتائج الفحص المعياري الأخير</h3>
-                  <span className="text-[11px] text-slate-400">نظام ERP المحدد: <b className="text-amber-400">{selectedErpSystem}</b></span>
-                </div>
+
+              <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
@@ -733,28 +971,36 @@ export default function App() {
                         <th className="p-3 text-right border border-slate-800">الطرف المدين</th>
                         <th className="p-3 text-right border border-slate-800">الطرف الدائن</th>
                         <th className="p-3 text-right border border-slate-800">المبلغ</th>
-                        <th className="p-3 text-center border border-slate-800">الحالة والإجراء</th>
+                        <th className="p-3 text-center border border-slate-800">الحالة الإجرائية والترحيل</th>
                       </tr>
                     </thead>
                     <tbody className="text-xs text-slate-200">
-                      {adjustmentEntries.map((entry) => (
+                      {filteredAdjustments.map((entry) => (
                         <tr key={entry.id} className="hover:bg-slate-900/50 transition">
                           <td className="p-3 border border-slate-800 font-bold text-amber-400">{entry.standard}</td>
                           <td className="p-3 border border-slate-800">{entry.description}</td>
                           <td className="p-3 border border-slate-800 text-emerald-400">{entry.debitAccount}</td>
                           <td className="p-3 border border-slate-800 text-rose-400">{entry.creditAccount}</td>
                           <td className="p-3 border border-slate-800 font-mono font-bold">${entry.amount.toLocaleString()}</td>
-                          <td className="p-3 border border-slate-800 text-center">
-                            {entry.status === 'معلق' ? (
-                              <button
-                                onClick={() => handlePushToErp(entry.id)}
-                                className="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold transition shadow"
-                              >
+                          <td className="p-3 border border-slate-800 text-center flex justify-center gap-2">
+                            {entry.status === 'معلق' && (
+                              <button onClick={() => handlePushToErp(entry.id)} className="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold shadow">
                                 ترحيل للـ ERP
                               </button>
-                            ) : (
-                              <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold">
-                                تم الترحيل للـ
+                            )}
+                            {entry.status === 'تم الترحيل للـ ERP' && (
+                              <div className="flex items-center gap-2">
+                                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold">
+                                  مرحل ومكتمل
+                                </span>
+                                <button onClick={() => handleReverseEntry(entry.id)} className="bg-rose-600/20 hover:bg-rose-600/40 text-rose-400 border border-rose-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold">
+                                  ↺ عكس القيد لإلغاء الأثر
+                                </button>
+                              </div>
+                            )}
+                            {entry.status === 'ملغى بقيد عكسي' && (
+                              <span className="bg-slate-800 text-slate-400 border border-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-bold">
+                                تم التراجع وعكس القيد
                               </span>
                             )}
                           </td>
@@ -766,8 +1012,10 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* شاشة محرك معايير IFRS الشامل */}
           {activeTab === 'ifrs_engine' && (
-            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+            <div className="flex flex-col gap-5 text-right font-sans h-full">
               <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
                 <div>
                   <h2 className="text-sm font-bold text-amber-400 mb-1">محرك الامتثال المحاسبي المعياري الشامل (Comprehensive IFRS & IAS Engine)</h2>
@@ -834,10 +1082,13 @@ export default function App() {
               </div>
             </div>
           )}
+
           {activeTab === 'ifrs' && <AuditRulesIFRS />}
           {activeTab === 'sql' && <SqlViewer />}
+
+          {/* شاشة محاكي السيناريوهات والضغط العالي */}
           {activeTab === 'simulator' && (
-            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+            <div className="flex flex-col gap-5 text-right font-sans h-full">
               <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
                 <div>
                   <h2 className="text-sm font-bold text-amber-400 mb-1">محاكي السيناريوهات والضغط العالي (Stress & Compliance Simulator)</h2>
@@ -905,8 +1156,10 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* شاشة بوابة الأمان والربط بـ ERP */}
           {activeTab === 'erp' && (
-            <div className="flex flex-col gap-5 text-right font-sans h-full" dir="rtl">
+            <div className="flex flex-col gap-5 text-right font-sans h-full">
               <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 shadow-xl flex justify-between items-center">
                 <div>
                   <h2 className="text-sm font-bold text-amber-400 mb-1">إعدادات الربط المباشر وحماية البيانات (SAEIS Security Gateway)</h2>
@@ -982,9 +1235,73 @@ export default function App() {
           )}
         </main>
 
-        {/* نافذة رفع ملف البيانات المنبثقة (مرة واحدة فقط) */}
-        {showUploadModal && (
+        {/* نافذة تفاصيل التنبيهات الفورية */}
+        {selectedAlertForDetails && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" dir="rtl">
+            <div className="bg-slate-950 border border-amber-500/40 w-full max-w-lg rounded-2xl p-6 shadow-2xl flex flex-col gap-4 relative animate-in fade-in zoom-in-95">
+              <button
+                onClick={() => setSelectedAlertForDetails(null)}
+                className="absolute top-4 left-4 text-slate-400 hover:text-white text-lg font-bold"
+              >
+                ✕
+              </button>
+              
+              <div className="border-b border-slate-800 pb-3">
+                <span className="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-0.5 rounded font-bold">
+                  {selectedAlertForDetails.standard}
+                </span>
+                <h3 className="text-sm font-bold text-white mt-1">
+                  تفاصيل التنبيه: {selectedAlertForDetails.title}
+                </h3>
+              </div>
+
+              {selectedAlertForDetails.entryDetails && (
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col gap-3 font-mono text-xs">
+                  <div className="flex justify-between border-b border-slate-800 pb-2">
+                    <span className="text-slate-400">رقم القيد في ERP:</span>
+                    <span className="text-amber-400 font-bold">{selectedAlertForDetails.entryDetails.entryNo}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-800 pb-2">
+                    <span className="text-slate-400">نوع الخلل/التصنيف الخاطئ:</span>
+                    <span className="text-rose-400 font-bold">{selectedAlertForDetails.entryDetails.issueCategory}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-800 pb-2">
+                    <span className="text-slate-400">الطرف المدين المسجل:</span>
+                    <span className="text-slate-200">{selectedAlertForDetails.entryDetails.debitAcc}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-800 pb-2">
+                    <span className="text-slate-400">الطرف الدائن المسجل:</span>
+                    <span className="text-slate-200">{selectedAlertForDetails.entryDetails.creditAcc}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">قيمة القيد:</span>
+                    <span className="text-emerald-400 font-bold">${selectedAlertForDetails.entryDetails.amount.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-slate-400 leading-relaxed bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                <b>ملاحظة المدقق الآلي:</b> {selectedAlertForDetails.message}
+              </p>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  onClick={() => {
+                    handleMarkAsRead(selectedAlertForDetails.id);
+                    setSelectedAlertForDetails(null);
+                  }}
+                  className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition"
+                >
+                  اعتماد المعاينة وتحديث العداد
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* نافذة رفع ملف البيانات Excel / CSV المنبثقة */}
+        {showUploadModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-slate-950 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl flex flex-col gap-5 relative animate-in fade-in zoom-in-95 duration-150">
               <button
                 onClick={() => setShowUploadModal(false)}
@@ -993,7 +1310,7 @@ export default function App() {
                 ✕
               </button>
               <div className="border-b border-slate-800 pb-3">
-                <h3 className="text-sm font-bold text-amber-400">رفع ملف البيانات (Excel / CSV)</h3>
+                <h3 className="text-sm font-bold text-amber-400">رفع ملف البيانات Excel / CSV</h3>
                 <p className="text-[11px] text-slate-400 mt-0.5">اختر نظام ERP الأصلي وقم برفع ملف ميزان المراجعة أو القيود</p>
               </div>
               <div className="flex flex-col gap-1.5">
