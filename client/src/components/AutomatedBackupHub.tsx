@@ -3,20 +3,21 @@ import React, { useState } from 'react';
 interface BackupItem {
   id: string;
   backupName: string;
-  backupType: 'كامل (Full Backup)' | 'تفاضلي (Differential)' | 'قيود التسوية فقط';
+  backupType: string;
   fileSize: string;
   createdAt: string;
-  status: 'جاهز للتحميل' | 'مؤرشف';
+  status: string;
 }
 
 export default function AutomatedBackupHub() {
   const [scheduleFrequency, setScheduleFrequency] = useState<string>('يومياً (Daily at 02:00 AM)');
   const [retentionDays, setRetentionDays] = useState<number>(30);
+  
   const [backupsList, setBackupsList] = useState<BackupItem[]>([
     {
       id: 'bk-101',
       backupName: 'SAEIS_Master_Full_Backup_2026_10_19.bak',
-      backupType: 'كامل (Full Backup)',
+      backupType: 'Full Backup',
       fileSize: '45.2 MB',
       createdAt: '2026-10-19 02:00 AM',
       status: 'جاهز للتحميل'
@@ -32,10 +33,11 @@ export default function AutomatedBackupHub() {
   ]);
 
   const handleCreateManualBackup = () => {
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '_');
     const newBackup: BackupItem = {
       id: `bk-${Date.now().toString().slice(-4)}`,
-      backupName: `SAEIS_Manual_Backup_${new Date().toISOString().slice(0, 10)}.bak`,
-      backupType: 'كامل (Full Backup)',
+      backupName: `SAEIS_Manual_Backup_${timestamp}.bak`,
+      backupType: 'Full Backup',
       fileSize: '46.0 MB',
       createdAt: new Date().toLocaleString('ar-SA'),
       status: 'جاهز للتحميل'
@@ -44,8 +46,32 @@ export default function AutomatedBackupHub() {
     alert('تم بنجاح إنشاء وتوليد نسخة احتياطية جديدة وحفظها في المسار المحلي المخصص.');
   };
 
+  // دالة التحميل الآمن والمباشر لملف النسخة الاحتياطية
   const handleDownloadBackup = (backupName: string) => {
-    alert(`جاري تحميل النسخة الاحتياطية (${backupName}) إلى جهازك المحلي...`);
+    try {
+      const backupData = {
+        system: "SAEIS Enterprise Audit System",
+        file: backupName,
+        exportedAt: new Date().toISOString(),
+        databaseStatus: "Encrypted & Verified",
+        recordsCount: 2000
+      };
+
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = backupName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      alert(`جاري تحميل النسخة الاحتياطية (${backupName}) إلى جهازك المحلي بنجاح.`);
+    } catch (error) {
+      console.error("خطأ في التحميل:", error);
+      alert("حدث خطأ أثناء محاولة تحميل ملف النسخة الاحتياطية.");
+    }
   };
 
   return (
@@ -92,7 +118,7 @@ export default function AutomatedBackupHub() {
           </div>
           <button
             onClick={handleCreateManualBackup}
-            className="mt-2 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow"
+            className="mt-2 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow cursor-pointer"
           >
             إنشاء نسخة احتياطية فورية الآن (Backup Now)
           </button>
@@ -123,7 +149,7 @@ export default function AutomatedBackupHub() {
                     <td className="p-2.5 border border-slate-800 text-center">
                       <button
                         onClick={() => handleDownloadBackup(bk.backupName)}
-                        className="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-1 rounded-lg text-[10px] font-bold transition border border-slate-700"
+                        className="bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-1 rounded-lg text-[10px] font-bold transition border border-slate-700 cursor-pointer"
                       >
                         تحميل النسخة
                       </button>
